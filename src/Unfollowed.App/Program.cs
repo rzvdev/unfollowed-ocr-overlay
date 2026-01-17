@@ -65,6 +65,8 @@ public static class Program
                     return await OverlayTestAsync(provider, args);
                 case "capture-test":
                     return await CaptureTestAsync(provider, args);
+                case "ocr-test":
+                    return await OcrTestAsync(provider, args);
                 default:
                     PrintHelp();
                     return 1;
@@ -191,6 +193,63 @@ public static class Program
         Console.ReadLine();
 
         await controller.StopAsync(CancellationToken.None);
+        return 0;
+    }
+
+    private static async Task<int> OcrTestAsync(ServiceProvider provider, string[] args)
+    {
+        // Usage:
+        // ocr-test [x y w h]
+        //
+        // Examples:
+        // ocr-test
+        // ocr-test 200 150 800 600
+
+        var roi = new RoiSelection(200, 150, 800, 600);
+
+        if (args.Length == 5
+            && int.TryParse(args[1], out var x)
+            && int.TryParse(args[2], out var y)
+            && int.TryParse(args[3], out var w)
+            && int.TryParse(args[4], out var h))
+        {
+            roi = new RoiSelection(x, y, w, h);
+        }
+
+        var capture = provider.GetRequiredService<IFrameCapture>();
+        var preprocessor = provider.GetRequiredService<IFramePreprocessor>();
+        var ocr = provider.GetRequiredService<IOcrProvider>();
+
+        await capture.InitializeAsync(roi, CancellationToken.None);
+
+        try
+        {
+            var frame = await capture.CaptureAsync(CancellationToken.None);
+            var processed = preprocessor.Process(frame, new PreprocessOptions());
+            var result = await ocr.RecognizeAsync(processed, new OcrOptions(), CancellationToken.None);
+
+            Console.WriteLine($"OCR tokens: {result.Tokens.Count}");
+
+            foreach (var token in result.Tokens)
+            {
+                Console.WriteLine($"{token.Text} | conf={token.Confidence:0.00} | roi=({token.RoiRect.X:0.0},{token.RoiRect.Y:0.0},{token.RoiRect.W:0.0},{token.RoiRect.H:0.0})");
+            }
+
+            var confidenceGroups = result.Tokens
+                .GroupBy(token => MathF.Round(token.Confidence, 2))
+                .OrderBy(group => group.Key);
+
+            Console.WriteLine("Confidence counts:");
+            foreach (var group in confidenceGroups)
+            {
+                Console.WriteLine($"{group.Key:0.00}: {group.Count()}");
+            }
+        }
+        finally
+        {
+            await capture.DisposeAsync();
+        }
+
         return 0;
     }
 
@@ -378,6 +437,7 @@ public static class Program
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
+        Console.WriteLine("  ocr-test [x y w h]                        Run capture/preprocess/OCR once and print tokens");
         Console.WriteLine();
     }
 }
