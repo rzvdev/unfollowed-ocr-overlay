@@ -197,30 +197,33 @@ public static class Program
     private static async Task<int> CaptureTestAsync(ServiceProvider provider, string[] args)
     {
         // Usage:
-        // capture-test [x y w h] [count]
+        // capture-test [x y w h] [count] [--preprocess]
         //
         // Examples:
         // capture-test
         // capture-test 3
         // capture-test 200 150 800 600
         // capture-test 200 150 800 600 2
+        // capture-test 200 150 800 600 2 --preprocess
 
         var roi = new RoiSelection(200, 150, 800, 600);
         var count = 3;
+        var dumpPreprocessed = args.Any(arg => IsPreprocessFlag(arg));
+        var filteredArgs = args.Where(arg => !IsPreprocessFlag(arg)).ToArray();
 
-        if (args.Length == 2 && int.TryParse(args[1], out var parsedCount))
+        if (filteredArgs.Length == 2 && int.TryParse(filteredArgs[1], out var parsedCount))
         {
             count = parsedCount;
         }
-        else if (args.Length >= 5
-            && int.TryParse(args[1], out var x)
-            && int.TryParse(args[2], out var y)
-            && int.TryParse(args[3], out var w)
-            && int.TryParse(args[4], out var h))
+        else if (filteredArgs.Length >= 5
+            && int.TryParse(filteredArgs[1], out var x)
+            && int.TryParse(filteredArgs[2], out var y)
+            && int.TryParse(filteredArgs[3], out var w)
+            && int.TryParse(filteredArgs[4], out var h))
         {
             roi = new RoiSelection(x, y, w, h);
 
-            if (args.Length >= 6 && int.TryParse(args[5], out parsedCount))
+            if (filteredArgs.Length >= 6 && int.TryParse(filteredArgs[5], out parsedCount))
             {
                 count = parsedCount;
             }
@@ -229,6 +232,7 @@ public static class Program
         count = Math.Clamp(count, 1, 3);
 
         var capture = provider.GetRequiredService<IFrameCapture>();
+        var preprocessor = provider.GetRequiredService<IFramePreprocessor>();
         await capture.InitializeAsync(roi, CancellationToken.None);
 
         try
@@ -245,6 +249,15 @@ public static class Program
                 var path = Path.Combine(Environment.CurrentDirectory + "/captures/", filename);
                 SaveBgra32AsBmp(path, frame);
                 Console.WriteLine($"Saved frame {i + 1}/{count} to {path}");
+
+                if (dumpPreprocessed)
+                {
+                    var processed = preprocessor.Process(frame, new PreprocessOptions());
+                    var preprocessedName = $"capture_{i + 1}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}_gray8.bmp";
+                    var preprocessedPath = Path.Combine(Environment.CurrentDirectory, preprocessedName);
+                    SaveGray8AsBmp(preprocessedPath, processed);
+                    Console.WriteLine($"Saved preprocessed frame {i + 1}/{count} to {preprocessedPath}");
+                }
             }
         }
         finally
@@ -293,6 +306,68 @@ public static class Program
         writer.Write(frame.Bgra32, 0, imageSize);
     }
 
+    private static void SaveGray8AsBmp(string path, ProcessedFrame frame)
+    {
+        const int fileHeaderSize = 14;
+        const int infoHeaderSize = 40;
+        const int paletteSize = 256 * 4;
+        var stride = (frame.Width + 3) & ~3;
+        var imageSize = stride * frame.Height;
+        var offset = fileHeaderSize + infoHeaderSize + paletteSize;
+        var fileSize = offset + imageSize;
+
+        if (frame.Gray8.Length < frame.Width * frame.Height)
+        {
+            throw new InvalidOperationException("Processed buffer is smaller than expected.");
+        }
+
+        using var stream = File.Create(path);
+        using var writer = new BinaryWriter(stream);
+
+        writer.Write((ushort)0x4D42);
+        writer.Write(fileSize);
+        writer.Write((ushort)0);
+        writer.Write((ushort)0);
+        writer.Write(offset);
+
+        writer.Write(infoHeaderSize);
+        writer.Write(frame.Width);
+        writer.Write(-frame.Height);
+        writer.Write((ushort)1);
+        writer.Write((ushort)8);
+        writer.Write(0);
+        writer.Write(imageSize);
+        writer.Write(0);
+        writer.Write(0);
+        writer.Write(256);
+        writer.Write(0);
+
+        for (var i = 0; i < 256; i++)
+        {
+            writer.Write((byte)i);
+            writer.Write((byte)i);
+            writer.Write((byte)i);
+            writer.Write((byte)0);
+        }
+
+        var rowPadding = stride - frame.Width;
+        var offsetIndex = 0;
+
+        for (var y = 0; y < frame.Height; y++)
+        {
+            writer.Write(frame.Gray8, offsetIndex, frame.Width);
+            offsetIndex += frame.Width;
+
+            for (var p = 0; p < rowPadding; p++)
+            {
+                writer.Write((byte)0);
+            }
+        }
+    }
+
+    private static bool IsPreprocessFlag(string arg)
+        => arg.Equals("--preprocess", StringComparison.OrdinalIgnoreCase)
+            || arg.Equals("--gray", StringComparison.OrdinalIgnoreCase);
 
     private static void PrintHelp()
     {
@@ -302,7 +377,7 @@ public static class Program
         Console.WriteLine("  compute <following.csv> <followers.csv>   Compute NonFollowBack counts");
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
-        Console.WriteLine("  capture-test [x y w h] [count]            Capture 1-3 ROI frames to BMP on disk");
+        Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
         Console.WriteLine();
     }
 }

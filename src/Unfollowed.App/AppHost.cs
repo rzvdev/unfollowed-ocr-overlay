@@ -14,6 +14,7 @@ namespace Unfollowed.App
                     .AddUnfollowedCsv()
                     .AddUnfollowedApp()
                     .AddUnfollowedRuntimeStubs(configuration);
+            services.AddSingleton<Unfollowed.Preprocess.IFramePreprocessor, Unfollowed.Preprocess.NoOpFramePreprocessor>();
 
             return services.BuildServiceProvider();
         }

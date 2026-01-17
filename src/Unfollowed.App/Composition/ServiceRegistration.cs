@@ -52,7 +52,7 @@ namespace Unfollowed.App.Composition
             {
                 services.AddSingleton<IFrameCapture, Win32FrameCapture>();
             }
-            services.AddSingleton<IFramePreprocessor, NoOpFramePreprocessor>();
+            services.AddSingleton<IFramePreprocessor, BasicFramePreprocessor>();
             services.AddSingleton<IOcrProvider, NullOcrProvider>();
             //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
             //services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
