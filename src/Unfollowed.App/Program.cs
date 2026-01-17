@@ -237,7 +237,12 @@ public static class Program
             {
                 var frame = await capture.CaptureAsync(CancellationToken.None);
                 var filename = $"capture_{i + 1}_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}.bmp";
-                var path = Path.Combine(Environment.CurrentDirectory, filename);
+                var pathExists = Directory.Exists(Environment.CurrentDirectory + "/captures/");
+                if (!pathExists)
+                {
+                    Directory.CreateDirectory(Environment.CurrentDirectory + "/captures/");
+                }
+                var path = Path.Combine(Environment.CurrentDirectory + "/captures/", filename);
                 SaveBgra32AsBmp(path, frame);
                 Console.WriteLine($"Saved frame {i + 1}/{count} to {path}");
             }
