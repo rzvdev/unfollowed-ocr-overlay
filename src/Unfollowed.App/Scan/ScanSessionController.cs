@@ -32,5 +32,6 @@ public sealed class ScanSessionController : IScanSessionController
     public async Task StopAsync(CancellationToken ct)
     {
         await _overlay.ClearAsync(ct);
+        await _overlay.DisposeAsync();
     }
 }

@@ -8,4 +8,5 @@ public interface IOverlayRenderer
     Task InitializeAsync(RoiSelection roi, OverlayOptions options, CancellationToken ct);
     Task RenderAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct);
     Task ClearAsync(CancellationToken ct);
+    ValueTask DisposeAsync();
 }

@@ -45,7 +45,8 @@ namespace Unfollowed.App.Composition
             services.AddSingleton<IFramePreprocessor, NoOpFramePreprocessor>();
             services.AddSingleton<IOcrProvider, NullOcrProvider>();
             //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
-            services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
+            //services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
+            services.AddTransient<IOverlayRenderer, Win32OverlayRenderer>();
             services.AddSingleton<IRoiSelector, StubRoiSelector>();
 
             return services;

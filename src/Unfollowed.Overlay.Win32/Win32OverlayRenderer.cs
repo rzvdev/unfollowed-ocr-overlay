@@ -9,7 +9,7 @@ namespace Unfollowed.Overlay.Win32
 {
     public sealed class Win32OverlayRenderer : IOverlayRenderer
     {
-        private readonly WpfUiThreadHost _ui;
+        private WpfUiThreadHost? _ui;
         private OverlayWindow? _window;
 
         public Win32OverlayRenderer()
@@ -19,7 +19,9 @@ namespace Unfollowed.Overlay.Win32
 
         public async Task InitializeAsync(RoiSelection roi, OverlayOptions options, CancellationToken ct)
         {
-            await _ui.InvokeAsync(() =>
+            var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
+
+            await ui.InvokeAsync(() =>
             {
                 _window = new OverlayWindow
                 {
@@ -36,7 +38,9 @@ namespace Unfollowed.Overlay.Win32
 
         public async Task RenderAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct)
         {
-            await _ui.InvokeAsync(() =>
+            var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
+
+            await ui.InvokeAsync(() =>
             {
                 if (_window is null) return;
 
@@ -86,7 +90,9 @@ namespace Unfollowed.Overlay.Win32
 
         public async Task ClearAsync(CancellationToken ct)
         {
-            await _ui.InvokeAsync(() =>
+            var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
+
+            await ui.InvokeAsync(() =>
             {
                 if (_window is null) return;
                 ((Canvas)_window.Content).Children.Clear();
@@ -95,13 +101,37 @@ namespace Unfollowed.Overlay.Win32
 
         public async ValueTask DisposeAsync()
         {
-            await _ui.InvokeAsync(() =>
-            {
-                _window?.Close();
-                _window = null;
-            });
+            // If Dispose is called multiple times, make it idempotent.
+            var ui = _ui;
+            if (ui is null)
+                return;
 
-            _ui.Dispose();
+            try
+            {
+                await ui.InvokeAsync(() =>
+                {
+                    if (_window is not null)
+                    {
+                        try
+                        {
+                            _window.Close();
+                        }
+                        catch
+                        {
+                            // ignore shutdown exceptions
+                        }
+                        finally
+                        {
+                            _window = null;
+                        }
+                    }
+                });
+            }
+            finally
+            {
+                ui.Dispose();
+                _ui = null;
+            }
         }
     }
 }
