@@ -3,6 +3,12 @@
 **Windows .NET 8 desktop application that uses real-time OCR and a transparent screen overlay to highlight non-follow-back accounts from CSV exports.**  
 Local-only execution. No browser extensions. No automation. No credentials required.
 
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6)
+![.NET](https://img.shields.io/badge/.NET-8-512BD4)
+![OCR](https://img.shields.io/badge/OCR-Real_Time-0A66C2)
+![Execution](https://img.shields.io/badge/Local_Only-Yes-E5533D)
+![License](https://img.shields.io/badge/MIT-License-16A34A)
+
 ---
 
 ## Overview
