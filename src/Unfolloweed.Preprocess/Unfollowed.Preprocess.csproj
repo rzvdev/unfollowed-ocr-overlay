@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Unfollowed.Capture\Unfollowed.Capture.csproj" />
+  </ItemGroup>
+
 </Project>

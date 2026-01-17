@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Unfollowed.Core\Unfollowed.Core.csproj" />
     <ProjectReference Include="..\Unfollowed.Csv\Unfollowed.Csv.csproj" />
     <ProjectReference Include="..\Unfollowed.Ocr\Unfollowed.Ocr.csproj" />
+    <ProjectReference Include="..\Unfollowed.Overlay.Win32\Unfollowed.Overlay.Win32.csproj" />
     <ProjectReference Include="..\Unfollowed.Overlay\Unfollowed.Overlay.csproj" />
     <ProjectReference Include="..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
   </ItemGroup>

@@ -1,11 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Unfollowed.Core.Models;
 
-namespace Unfollowed.Core.Models;
-
-public class RectF
-{
-}
+public readonly record struct RectF(float X, float Y, float W, float H);

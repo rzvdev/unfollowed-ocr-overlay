@@ -61,6 +61,8 @@ public static class Program
                     return Compute(provider, args);
                 case "scan":
                     return await ScanAsync(provider);
+                case "overlay-test":
+                    return await OverlayTestAsync(provider, args);
                 default:
                     PrintHelp();
                     return 1;
@@ -131,6 +133,65 @@ public static class Program
         return 0;
     }
 
+    private static async Task<int> OverlayTestAsync(ServiceProvider provider, string[] args)
+    {
+        // Usage:
+        // overlay-test [x y w h]
+        //
+        // Examples:
+        // overlay-test
+        // overlay-test 200 150 800 600
+
+        var controller = provider.GetRequiredService<IScanSessionController>();
+
+        // Default ROI if not provided.
+        var roi = new RoiSelection(200, 150, 800, 600);
+
+        if (args.Length == 5
+            && int.TryParse(args[1], out var x)
+            && int.TryParse(args[2], out var y)
+            && int.TryParse(args[3], out var w)
+            && int.TryParse(args[4], out var h))
+        {
+            roi = new RoiSelection(x, y, w, h);
+        }
+
+        // Minimal dummy data – overlay test does not require CSV.
+        var data = new NonFollowBackData(
+            Following: Array.Empty<string>(),
+            Followers: Array.Empty<string>(),
+            NonFollowBack: Array.Empty<string>(),
+            FollowingStats: new CsvImportStats(0, 0, 0, 0),
+            FollowersStats: new CsvImportStats(0, 0, 0, 0)
+        );
+
+        // Overlay-focused options: make sure click-through is enabled.
+        var options = new ScanSessionOptions(
+            TargetFps: 1,
+            Preprocess: new PreprocessOptions(),
+            Ocr: new OcrOptions(),
+            Extraction: new ExtractionOptions(),
+            Stabilizer: new StabilizerOptions(),
+            Overlay: new OverlayOptions(
+                AlwaysOnTop: true,
+                ClickThrough: true,
+                ShowBadgeText: true
+            )
+        );
+
+        await controller.StartAsync(data, roi, options, CancellationToken.None);
+
+        Console.WriteLine("Overlay test started.");
+        Console.WriteLine($"ROI: X={roi.X}, Y={roi.Y}, W={roi.Width}, H={roi.Height}");
+        Console.WriteLine("You should see 2–3 green boxes inside the ROI window.");
+        Console.WriteLine("Try clicking/scrolling in apps underneath (overlay must be click-through).");
+        Console.WriteLine("Press ENTER to stop...");
+        Console.ReadLine();
+
+        await controller.StopAsync(CancellationToken.None);
+        return 0;
+    }
+
 
     private static void PrintHelp()
     {
@@ -139,6 +200,7 @@ public static class Program
         Console.WriteLine("Commands:");
         Console.WriteLine("  compute <following.csv> <followers.csv>   Compute NonFollowBack counts");
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
+        Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
         Console.WriteLine();
     }
 }

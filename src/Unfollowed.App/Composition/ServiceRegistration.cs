@@ -7,6 +7,8 @@ using Unfollowed.Core.Stabilization;
 using Unfollowed.Csv;
 using Unfollowed.Ocr;
 using Unfollowed.Overlay;
+using Unfollowed.Overlay.Win32;
+using Unfollowed.Preprocess;
 
 namespace Unfollowed.App.Composition
 {
@@ -42,7 +44,8 @@ namespace Unfollowed.App.Composition
             services.AddSingleton<IFrameCapture, NullFrameCapture>();
             services.AddSingleton<IFramePreprocessor, NoOpFramePreprocessor>();
             services.AddSingleton<IOcrProvider, NullOcrProvider>();
-            services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
+            //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
+            services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
             services.AddSingleton<IRoiSelector, StubRoiSelector>();
 
             return services;
