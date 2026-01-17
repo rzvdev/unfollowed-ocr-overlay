@@ -33,11 +33,11 @@ namespace Unfollowed.Core.Normalization
 
             var normalized = sb.ToString();
 
-            if (normalized.Length < _options.MinLenght)
+            if (normalized.Length < _options.MinLength)
                 return string.Empty;
 
-            if (normalized.Length > _options.MaxLenght)
-                normalized = normalized[.._options.MinLenght];
+            if (normalized.Length > _options.MaxLength)
+                normalized = normalized[.._options.MaxLength];
 
             return normalized;
         }

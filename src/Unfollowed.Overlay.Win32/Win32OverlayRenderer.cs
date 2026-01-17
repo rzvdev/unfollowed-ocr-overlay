@@ -11,6 +11,7 @@ namespace Unfollowed.Overlay.Win32
     {
         private WpfUiThreadHost? _ui;
         private OverlayWindow? _window;
+        private OverlayOptions? _options;
 
         public Win32OverlayRenderer()
         {
@@ -20,10 +21,11 @@ namespace Unfollowed.Overlay.Win32
         public async Task InitializeAsync(RoiSelection roi, OverlayOptions options, CancellationToken ct)
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
+            _options = options;
 
             await ui.InvokeAsync(() =>
             {
-                _window = new OverlayWindow
+                _window = new OverlayWindow(options.ClickThrough)
                 {
                     Left = roi.X,
                     Top = roi.Y,
@@ -39,6 +41,7 @@ namespace Unfollowed.Overlay.Win32
         public async Task RenderAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct)
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
+            var options = _options ?? throw new InvalidOperationException("Overlay renderer not initialized.");
 
             await ui.InvokeAsync(() =>
             {
@@ -69,6 +72,9 @@ namespace Unfollowed.Overlay.Win32
                     Canvas.SetLeft(rect, local.X);
                     Canvas.SetTop(rect, local.Y);
                     canvas.Children.Add(rect);
+
+                    if (!options.ShowBadgeText)
+                        continue;
 
                     var label = new TextBlock
                     {

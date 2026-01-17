@@ -9,13 +9,19 @@ namespace Unfollowed.Overlay.Win32
     /// </summary>
     public partial class OverlayWindow : Window
     {
-        public OverlayWindow()
+        private readonly bool _clickThrough;
+
+        public OverlayWindow(bool clickThrough)
         {
+            _clickThrough = clickThrough;
             InitializeComponent();
             Loaded += (_, _) => ApplyClickThrough();
         }
         private void ApplyClickThrough()
         {
+            if (!_clickThrough)
+                return;
+
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd == IntPtr.Zero) return;
 
