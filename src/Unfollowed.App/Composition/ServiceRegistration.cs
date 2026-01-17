@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Unfollowed.App.Scan;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
@@ -39,9 +40,18 @@ namespace Unfollowed.App.Composition
             return services;
         }
 
-        public static IServiceCollection AddUnfollowedRuntimeStubs(this IServiceCollection services)
+        public static IServiceCollection AddUnfollowedRuntimeStubs(this IServiceCollection services, IConfiguration configuration)
         {
-            services.AddSingleton<IFrameCapture, NullFrameCapture>();
+            var useNullCapture = configuration.GetValue("Capture:UseNullFrameCapture", false);
+
+            if (useNullCapture)
+            {
+                services.AddSingleton<IFrameCapture, NullFrameCapture>();
+            }
+            else
+            {
+                services.AddSingleton<IFrameCapture, Win32FrameCapture>();
+            }
             services.AddSingleton<IFramePreprocessor, NoOpFramePreprocessor>();
             services.AddSingleton<IOcrProvider, NullOcrProvider>();
             //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
