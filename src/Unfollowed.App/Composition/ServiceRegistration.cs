@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Unfollowed.App.Scan;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Normalization;
@@ -27,6 +28,12 @@ namespace Unfollowed.App.Composition
             services.AddSingleton<ICsvImporter, SimpleCsvImporter>();
             services.AddSingleton<INonFollowBackCalculator, NonFollowBackCalculator>();
 
+            return services;
+        }
+
+        public static IServiceCollection AddUnfollowedApp(this IServiceCollection services)
+        {
+            services.AddSingleton<IScanSessionController, ScanSessionController>();
             return services;
         }
 

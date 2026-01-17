@@ -3,7 +3,7 @@
 namespace Unfollowed.Csv;
 
 public sealed record CsvImportResult(
-    IReadOnlyCollection<string> UsernameNormalized,
+    IReadOnlyCollection<string> UsernamesNormalized,
     CsvImportStats Stats,
     string? DetecteUsernameColumn
     );

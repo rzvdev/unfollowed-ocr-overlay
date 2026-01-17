@@ -39,6 +39,7 @@ public static class Program
         services
             .AddUnfollowedCore()
             .AddUnfollowedCsv()
+            .AddUnfollowedApp()
             .AddUnfollowedRuntimeStubs();
 
         services.AddSingleton<IScanSessionController, ScanSessionController>();
@@ -109,7 +110,7 @@ public static class Program
             Followers: Array.Empty<string>(),
             NonFollowBack: Array.Empty<string>(),
             FollowingStats: new CsvImportStats(0, 0, 0, 0),
-            FollowerStats: new CsvImportStats(0, 0, 0, 0)
+            FollowersStats: new CsvImportStats(0, 0, 0, 0)
         );
 
         var options = new ScanSessionOptions(

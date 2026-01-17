@@ -5,5 +5,5 @@ public sealed record NonFollowBackData(
     IReadOnlyCollection<string> Followers,
     IReadOnlyCollection<string> NonFollowBack,
     CsvImportStats FollowingStats,
-    CsvImportStats FollowerStats
+    CsvImportStats FollowersStats
     );

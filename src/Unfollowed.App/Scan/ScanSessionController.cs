@@ -7,11 +7,11 @@ public sealed class ScanSessionController : IScanSessionController
 {
     public Task StartAsync(NonFollowBackData data, RoiSelection roi, ScanSessionOptions options, CancellationToken ct)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken ct)
     {
-        throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }

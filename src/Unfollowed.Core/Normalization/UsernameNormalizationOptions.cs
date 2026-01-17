@@ -1,10 +1,10 @@
-﻿namespace Unfollowed.Core.Normalization
+﻿namespace Unfollowed.Core.Normalization;
+
+public sealed class UsernameNormalizationOptions
 {
-    public sealed record UsernameNormalizationOptions(
-        bool ToLower = true,
-        bool StripLeadingAt = true,
-        int MinLenght = 1,
-        int MaxLenght = 30,
-        string AllowedChars = "abcdefghijklmnopqrstuvwxyz0123456789._"
-    );
+    public bool ToLower = true;
+    public bool StripLeadingAt = true;
+    public int MinLenght = 1;
+    public int MaxLenght = 30;
+    public string AllowedChars = "abcdefghijklmnopqrstuvwxyz0123456789._";
 }
