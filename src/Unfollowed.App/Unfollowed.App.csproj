@@ -7,4 +7,21 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Unfollowed.Capture\Unfollowed.Capture.csproj" />
+    <ProjectReference Include="..\Unfollowed.Core\Unfollowed.Core.csproj" />
+    <ProjectReference Include="..\Unfollowed.Csv\Unfollowed.Csv.csproj" />
+    <ProjectReference Include="..\Unfollowed.Ocr\Unfollowed.Ocr.csproj" />
+    <ProjectReference Include="..\Unfollowed.Overlay\Unfollowed.Overlay.csproj" />
+    <ProjectReference Include="..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
+  </ItemGroup>
+
 </Project>
