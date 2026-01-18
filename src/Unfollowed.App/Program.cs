@@ -63,6 +63,8 @@ public static class Program
                     return await ScanAsync(provider, configuration);
                 case "scan-csv":
                     return await ScanWithCsvAsync(provider, configuration, args);
+                case "convert-json":
+                    return ConvertJsonToCsv(args);
                 case "overlay-test":
                     return await OverlayTestAsync(provider, args);
                 case "overlay-calibrate":
@@ -104,6 +106,23 @@ public static class Program
         Console.WriteLine($"Following: {data.Following.Count}");
         Console.WriteLine($"Followers: {data.Followers.Count}");
         Console.WriteLine($"NonFollowBack: {data.NonFollowBack.Count}");
+
+        return 0;
+    }
+
+    private static int ConvertJsonToCsv(string[] args)
+    {
+        if (args.Length < 4)
+        {
+            Console.Error.WriteLine("Usage: convert-json <following.json> <followers.json> <output-directory>");
+            return 1;
+        }
+
+        var exporter = new InstagramJsonCsvExporter();
+        exporter.Export(args[1], args[2], args[3], CancellationToken.None);
+
+        Console.WriteLine($"Created: {Path.Combine(args[3], "following.csv")}");
+        Console.WriteLine($"Created: {Path.Combine(args[3], "followers.csv")}");
 
         return 0;
     }
@@ -603,6 +622,7 @@ public static class Program
         Console.WriteLine("  compute <following.csv> <followers.csv>   Compute NonFollowBack counts");
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
         Console.WriteLine("  scan-csv <following.csv> <followers.csv>  Start scan loop with CSV input");
+        Console.WriteLine("  convert-json <following.json> <followers.json> <output-dir>  Export CSVs from Instagram JSON");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
         Console.WriteLine("  overlay-calibrate [x y w h]               Show ROI border + guides for calibration");
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
