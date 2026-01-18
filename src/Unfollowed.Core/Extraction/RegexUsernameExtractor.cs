@@ -1,4 +1,8 @@
-﻿using Unfollowed.Core.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using Unfollowed.Core.Models;
 
 namespace Unfollowed.Core.Extraction;
 
@@ -6,6 +10,97 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
 {
     public IReadOnlyList<MatchCandidate> ExtractCandidates(IReadOnlyCollection<(string Text, RectF RoiRect, float Confidence)> ocrTokens, ExtractionOptions options, Func<string, bool> isInNonFollowBackSet, Func<string, string> normalize)
     {
-        throw new NotImplementedException();
+        if (ocrTokens.Count == 0)
+            return Array.Empty<MatchCandidate>();
+
+        var stopWords = BuildStopWords(options.StopWords);
+        var regex = new Regex(options.CandidateReges, RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        var bestByUser = new Dictionary<string, MatchCandidate>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var token in ocrTokens)
+        {
+            if (token.Confidence < options.MinTokenConfidence)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(token.Text))
+                continue;
+
+            foreach (Match match in regex.Matches(token.Text))
+            {
+                if (!match.Success)
+                    continue;
+
+                var normalized = normalize(match.Value);
+                if (string.IsNullOrWhiteSpace(normalized))
+                    continue;
+
+                if (stopWords.Contains(normalized))
+                    continue;
+
+                if (!IsInstagramHandle(normalized, options.MaxUsernameLength))
+                    continue;
+
+                if (!isInNonFollowBackSet(normalized))
+                    continue;
+
+                var candidate = new MatchCandidate(normalized, token.Confidence, token.RoiRect);
+                if (bestByUser.TryGetValue(normalized, out var existing))
+                {
+                    if (candidate.Confidence > existing.Confidence)
+                        bestByUser[normalized] = candidate;
+                    continue;
+                }
+
+                bestByUser[normalized] = candidate;
+            }
+        }
+
+        return bestByUser.Values
+            .OrderByDescending(candidate => candidate.Confidence)
+            .ToArray();
+    }
+
+    private static HashSet<string> BuildStopWords(IReadOnlyCollection<string>? stopWords)
+    {
+        var set = stopWords is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(stopWords, StringComparer.OrdinalIgnoreCase);
+
+        set.Add("following");
+        set.Add("message");
+        set.Add("follow");
+        set.Add("followers");
+        set.Add("requested");
+        set.Add("request");
+        set.Add("posts");
+        set.Add("post");
+        set.Add("block");
+        set.Add("blocked");
+        set.Add("remove");
+        set.Add("share");
+        set.Add("like");
+
+        return set;
+    }
+
+    private static bool IsInstagramHandle(string normalized, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(normalized))
+            return false;
+
+        if (normalized.Length > maxLength)
+            return false;
+
+        if (normalized.StartsWith('.', StringComparison.Ordinal) || normalized.EndsWith('.', StringComparison.Ordinal))
+            return false;
+
+        for (var i = 0; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+            if (ch == '.' && i > 0 && normalized[i - 1] == '.')
+                return false;
+        }
+
+        return true;
     }
 }
