@@ -2,7 +2,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using Unfollowed.App.Composition;
+using Unfollowed.App.Services;
+using Unfollowed.App.Settings;
 using Unfollowed.App.ViewModels;
+using Unfollowed.Overlay;
 
 namespace Unfollowed.App;
 
@@ -29,8 +32,11 @@ public partial class App : System.Windows.Application
         services.AddSingleton<DataTabViewModel>();
         services.AddSingleton<ScanningTabViewModel>();
         services.AddSingleton<DiagnosticsTabViewModel>();
+        services.AddSingleton<IThemeService, ThemeService>();
 
         _serviceProvider = services.BuildServiceProvider();
+
+        ApplyTheme(configuration, _serviceProvider);
 
         var window = new MainWindow
         {
@@ -44,5 +50,27 @@ public partial class App : System.Windows.Application
     {
         _serviceProvider?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void ApplyTheme(IConfiguration configuration, IServiceProvider serviceProvider)
+    {
+        var settingsStore = new AppSettingsStore();
+        var defaults = BuildDefaultSettings(configuration);
+        var settings = settingsStore.Load(defaults);
+        var themeService = serviceProvider.GetRequiredService<IThemeService>();
+        themeService.ApplyTheme(settings.ThemeMode);
+    }
+
+    private static AppSettings BuildDefaultSettings(IConfiguration configuration)
+    {
+        return new AppSettings(
+            TargetFps: configuration.GetValue("Scan:TargetFps", 4),
+            OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
+            OcrMinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
+            StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
+            Roi: null,
+            Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime),
+            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System)
+        );
     }
 }

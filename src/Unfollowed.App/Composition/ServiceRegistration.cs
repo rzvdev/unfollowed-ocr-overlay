@@ -44,6 +44,7 @@ namespace Unfollowed.App.Composition
             services.AddSingleton<ILoggerProvider, InAppLoggerProvider>();
             services.AddSingleton<IScanSessionController, ScanSessionController>();
             services.AddSingleton<IOverlayService, Win32OverlayService>();
+            services.AddSingleton<IThemeService, ThemeService>();
             return services;
         }
 
