@@ -50,4 +50,36 @@ public sealed class KOfMHighlightStabilizerTests
 
         Assert.Empty(highlights);
     }
+
+    [Fact]
+    public void Stabilize_Returns_Uncertain_Highlight_When_Allowed()
+    {
+        var stabilizer = new KOfMHighlightStabilizer();
+        var options = new StabilizerOptions(WindowSizeM: 3, RequiredK: 2, ConfidenceThreshold: 0.5f, AllowUncertainHighlights: true);
+        var transform = new RoiToScreenTransform(100, 50, 200, 100, 400, 200);
+
+        var highlights = stabilizer.Stabilize(
+            new[] { new MatchCandidate("cora", 0.8f, new RectF(20, 10, 20, 10)) },
+            transform,
+            options);
+
+        var highlight = Assert.Single(highlights);
+        Assert.Equal("cora", highlight.UsernameNormalized);
+        Assert.False(highlight.IsCertain);
+    }
+
+    [Theory]
+    [InlineData(0, 2)]
+    [InlineData(2, 0)]
+    public void Stabilize_Throws_When_WindowOrKInvalid(int windowSize, int requiredK)
+    {
+        var stabilizer = new KOfMHighlightStabilizer();
+        var options = new StabilizerOptions(WindowSizeM: windowSize, RequiredK: requiredK, ConfidenceThreshold: 0.5f);
+        var transform = new RoiToScreenTransform(100, 50, 200, 100, 400, 200);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => stabilizer.Stabilize(
+            Array.Empty<MatchCandidate>(),
+            transform,
+            options));
+    }
 }
