@@ -18,7 +18,7 @@ public sealed class ScanLifecycleTests
         var sp = AppHost.BuildServiceProvider();
         var controller = sp.GetRequiredService<IScanSessionController>();
 
-        var roi = new RoiSelection(0, 0, 0, 0);
+        var roi = new RoiSelection(0, 0, 100, 100);
 
         var data = new NonFollowBackData(
             Following: Array.Empty<string>(),
