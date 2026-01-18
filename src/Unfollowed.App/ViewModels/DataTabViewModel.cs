@@ -13,6 +13,7 @@ public sealed class DataTabViewModel : ViewModelBase
     private int _followingCount;
     private int _followersCount;
     private int _nonFollowBackCount;
+    private bool _hasCsvData;
     private string _statusMessage = "Select your following and followers CSV exports to compute the results.";
     private bool _hasError;
     private string _errorMessage = string.Empty;
@@ -46,6 +47,12 @@ public sealed class DataTabViewModel : ViewModelBase
     {
         get => _nonFollowBackCount;
         private set => SetProperty(ref _nonFollowBackCount, value);
+    }
+
+    public bool HasCsvData
+    {
+        get => _hasCsvData;
+        private set => SetProperty(ref _hasCsvData, value);
     }
 
     public string StatusMessage
@@ -100,6 +107,7 @@ public sealed class DataTabViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(_followingPath) || string.IsNullOrWhiteSpace(_followersPath))
         {
+            HasCsvData = false;
             return;
         }
 
@@ -112,6 +120,7 @@ public sealed class DataTabViewModel : ViewModelBase
             FollowingCount = data.Following.Count;
             FollowersCount = data.Followers.Count;
             NonFollowBackCount = data.NonFollowBack.Count;
+            HasCsvData = true;
             StatusMessage = "Computed non-follow-back results.";
             ClearError();
         }
@@ -120,6 +129,7 @@ public sealed class DataTabViewModel : ViewModelBase
             FollowingCount = 0;
             FollowersCount = 0;
             NonFollowBackCount = 0;
+            HasCsvData = false;
             HasError = true;
             ErrorMessage = ex.Message;
             StatusMessage = "Failed to compute results.";

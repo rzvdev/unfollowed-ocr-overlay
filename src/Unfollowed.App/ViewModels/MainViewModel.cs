@@ -12,6 +12,15 @@ public sealed class MainViewModel : ViewModelBase
         Data = data;
         Scanning = scanning;
         Diagnostics = diagnostics;
+
+        Scanning.HasCsvData = Data.HasCsvData;
+        Data.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(DataTabViewModel.HasCsvData))
+            {
+                Scanning.HasCsvData = Data.HasCsvData;
+            }
+        };
     }
 
     public DataTabViewModel Data { get; }
