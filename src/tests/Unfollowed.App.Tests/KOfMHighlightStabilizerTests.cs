@@ -13,17 +13,17 @@ public sealed class KOfMHighlightStabilizerTests
         var transform = new RoiToScreenTransform(100, 50, 200, 100, 400, 200);
 
         stabilizer.Stabilize(
-            new[] { new MatchCandidate("alice", 0.9f, new RectF(10, 10, 20, 10)) },
+            new[] { new MatchCandidate("alice", "@alice", 0.9f, new RectF(10, 10, 20, 10)) },
             transform,
             options);
 
         stabilizer.Stabilize(
-            new[] { new MatchCandidate("bob", 0.9f, new RectF(40, 20, 30, 10)) },
+            new[] { new MatchCandidate("bob", "@bob", 0.9f, new RectF(40, 20, 30, 10)) },
             transform,
             options);
 
         var highlights = stabilizer.Stabilize(
-            new[] { new MatchCandidate("alice", 0.95f, new RectF(12, 12, 20, 10)) },
+            new[] { new MatchCandidate("alice", "@alice", 0.95f, new RectF(12, 12, 20, 10)) },
             transform,
             options);
 
@@ -41,7 +41,7 @@ public sealed class KOfMHighlightStabilizerTests
         var transform = new RoiToScreenTransform(100, 50, 200, 100, 400, 200);
 
         stabilizer.Stabilize(
-            new[] { new MatchCandidate("bob", 0.9f, new RectF(40, 20, 30, 10)) },
+            new[] { new MatchCandidate("bob", "@bob", 0.9f, new RectF(40, 20, 30, 10)) },
             transform,
             options);
 
@@ -59,7 +59,7 @@ public sealed class KOfMHighlightStabilizerTests
         var transform = new RoiToScreenTransform(100, 50, 200, 100, 400, 200);
 
         var highlights = stabilizer.Stabilize(
-            new[] { new MatchCandidate("cora", 0.8f, new RectF(20, 10, 20, 10)) },
+            new[] { new MatchCandidate("cora", "@cora", 0.8f, new RectF(20, 10, 20, 10)) },
             transform,
             options);
 
@@ -91,14 +91,14 @@ public sealed class KOfMHighlightStabilizerTests
         var transform = new RoiToScreenTransform(0, 0, 100, 100, 100, 100);
 
         stabilizer.Stabilize(
-            new[] { new MatchCandidate("dana", 0.8f, new RectF(10, 10, 10, 10)) },
+            new[] { new MatchCandidate("dana", "@dana", 0.8f, new RectF(10, 10, 10, 10)) },
             transform,
             options);
 
         stabilizer.Reset();
 
         var highlights = stabilizer.Stabilize(
-            new[] { new MatchCandidate("dana", 0.8f, new RectF(10, 10, 10, 10)) },
+            new[] { new MatchCandidate("dana", "@dana", 0.8f, new RectF(10, 10, 10, 10)) },
             transform,
             options);
 

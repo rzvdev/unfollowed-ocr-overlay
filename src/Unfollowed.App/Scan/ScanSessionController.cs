@@ -142,9 +142,12 @@ public sealed class ScanSessionController : IScanSessionController
 
             try
             {
+                var frameNumber = frameIndex;
                 var captureStart = Stopwatch.GetTimestamp();
                 var frame = await _capture.CaptureAsync(ct);
                 var captureElapsed = Stopwatch.GetElapsedTime(captureStart);
+
+                FrameDumpWriter.TryDumpFrame(frame, options.CaptureDump, frameNumber, _logger);
 
                 var preprocessStart = Stopwatch.GetTimestamp();
                 var processed = _preprocessor.Process(frame, options.Preprocess);
@@ -216,36 +219,18 @@ public sealed class ScanSessionController : IScanSessionController
                 }
                 else
                 {
-                    skippedCount++;
-                    if (_logger.IsEnabled(LogLevel.Information))
-                    {
-                        _logger.LogInformation(
-                            "Frame {Frame} OCR skipped (diff={Diff:0.000}, threshold={Threshold:0.000}, processed={ProcessedCount}, skipped={SkippedCount}).",
-                            frameIndex,
-                            diffRatio,
-                            options.OcrFrameDiffThreshold,
-                            processedCount,
-                            skippedCount);
-                    }
-
-                    var renderStart = Stopwatch.GetTimestamp();
-                    await _overlay.RenderAsync(lastHighlights, ct);
-                    var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
-
-                    var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
-                    if (_logger.IsEnabled(LogLevel.Information))
-                    {
-                        _logger.LogInformation(
-                            "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr=0.0 extract=0.0 render={RenderMs:0.0} total={TotalMs:0.0}",
-                            frameIndex++,
-                            captureElapsed.TotalMilliseconds,
-                            preprocessElapsed.TotalMilliseconds,
-                            renderElapsed.TotalMilliseconds,
-                            totalElapsed.TotalMilliseconds);
-                    }
+                    _logger.LogInformation(
+                        "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
+                        frameNumber,
+                        captureElapsed.TotalMilliseconds,
+                        preprocessElapsed.TotalMilliseconds,
+                        ocrElapsed.TotalMilliseconds,
+                        extractElapsed.TotalMilliseconds,
+                        renderElapsed.TotalMilliseconds,
+                        totalElapsed.TotalMilliseconds);
                 }
 
-                previousProcessed = processed;
+                frameIndex++;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

@@ -242,7 +242,8 @@ public static class Program
                 AlwaysOnTop: true,
                 ClickThrough: true,
                 ShowBadgeText: true
-            )
+            ),
+            CaptureDump: new CaptureDumpOptions()
         );
 
         await controller.StartAsync(data, roi, options, CancellationToken.None);
@@ -714,6 +715,19 @@ public static class Program
             AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false)
         );
 
+        var overlayOptions = new OverlayOptions(
+            AlwaysOnTop: configuration.GetValue("Overlay:AlwaysOnTop", true),
+            ClickThrough: configuration.GetValue("Overlay:ClickThrough", true),
+            ShowBadgeText: configuration.GetValue("Overlay:ShowBadgeText", true),
+            ShowOcrText: configuration.GetValue("Overlay:ShowOcrText", false)
+        );
+
+        var captureDumpOptions = new CaptureDumpOptions(
+            Enabled: configuration.GetValue("Capture:FrameDumpEnabled", false),
+            DumpEveryNFrames: configuration.GetValue("Capture:FrameDumpEveryNFrames", 0),
+            OutputDirectory: configuration.GetValue("Capture:FrameDumpOutputDirectory", "frame_dumps")
+        );
+
         return new ScanSessionOptions(
             TargetFps: targetFps,
             OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
@@ -721,7 +735,8 @@ public static class Program
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
             Stabilizer: stabilizerOptions,
-            Overlay: new OverlayOptions()
+            Overlay: overlayOptions,
+            CaptureDump: captureDumpOptions
         );
     }
 
@@ -748,20 +763,20 @@ public static class Program
 
         var highlights = new List<Highlight>
         {
-            new("calibration_border_top", 1f, new RectF(left, top, roi.Width, thickness), true),
-            new("calibration_border_bottom", 1f, new RectF(left, bottom - thickness, roi.Width, thickness), true),
-            new("calibration_border_left", 1f, new RectF(left, top, thickness, roi.Height), true),
-            new("calibration_border_right", 1f, new RectF(right - thickness, top, thickness, roi.Height), true),
-            new("calibration_inset_top", 1f, new RectF(innerLeft, innerTop, innerWidth, thickness), true),
-            new("calibration_inset_bottom", 1f, new RectF(innerLeft, bottom - inset - thickness, innerWidth, thickness), true),
-            new("calibration_inset_left", 1f, new RectF(innerLeft, innerTop, thickness, innerHeight), true),
-            new("calibration_inset_right", 1f, new RectF(right - inset - thickness, innerTop, thickness, innerHeight), true),
-            new("calibration_center_h", 1f, new RectF(innerLeft, centerY - thickness / 2f, innerWidth, thickness), true),
-            new("calibration_center_v", 1f, new RectF(centerX - thickness / 2f, innerTop, thickness, innerHeight), true),
-            new("calibration_third_h", 1f, new RectF(innerLeft, thirdY - thickness / 2f, innerWidth, thickness), true),
-            new("calibration_two_third_h", 1f, new RectF(innerLeft, twoThirdY - thickness / 2f, innerWidth, thickness), true),
-            new("calibration_third_v", 1f, new RectF(thirdX - thickness / 2f, innerTop, thickness, innerHeight), true),
-            new("calibration_two_third_v", 1f, new RectF(twoThirdX - thickness / 2f, innerTop, thickness, innerHeight), true)
+            new("calibration_border_top", string.Empty, 1f, new RectF(left, top, roi.Width, thickness), true),
+            new("calibration_border_bottom", string.Empty, 1f, new RectF(left, bottom - thickness, roi.Width, thickness), true),
+            new("calibration_border_left", string.Empty, 1f, new RectF(left, top, thickness, roi.Height), true),
+            new("calibration_border_right", string.Empty, 1f, new RectF(right - thickness, top, thickness, roi.Height), true),
+            new("calibration_inset_top", string.Empty, 1f, new RectF(innerLeft, innerTop, innerWidth, thickness), true),
+            new("calibration_inset_bottom", string.Empty, 1f, new RectF(innerLeft, bottom - inset - thickness, innerWidth, thickness), true),
+            new("calibration_inset_left", string.Empty, 1f, new RectF(innerLeft, innerTop, thickness, innerHeight), true),
+            new("calibration_inset_right", string.Empty, 1f, new RectF(right - inset - thickness, innerTop, thickness, innerHeight), true),
+            new("calibration_center_h", string.Empty, 1f, new RectF(innerLeft, centerY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_center_v", string.Empty, 1f, new RectF(centerX - thickness / 2f, innerTop, thickness, innerHeight), true),
+            new("calibration_third_h", string.Empty, 1f, new RectF(innerLeft, thirdY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_two_third_h", string.Empty, 1f, new RectF(innerLeft, twoThirdY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_third_v", string.Empty, 1f, new RectF(thirdX - thickness / 2f, innerTop, thickness, innerHeight), true),
+            new("calibration_two_third_v", string.Empty, 1f, new RectF(twoThirdX - thickness / 2f, innerTop, thickness, innerHeight), true)
         };
 
         return highlights;

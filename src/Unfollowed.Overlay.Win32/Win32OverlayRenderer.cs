@@ -100,23 +100,41 @@ namespace Unfollowed.Overlay.Win32
                     Canvas.SetTop(rect, local.Y);
                     canvas.Children.Add(rect);
 
-                    if (!options.ShowBadgeText)
+                    if (options.ShowBadgeText)
+                    {
+                        var label = new TextBlock
+                        {
+                            Text = h.UsernameNormalized,
+                            FontSize = 12,
+                            Foreground = System.Windows.Media.Brushes.LimeGreen,
+                            Background = System.Windows.Media.Brushes.Black,
+                            Opacity = 0.8,
+                            Padding = new Thickness(4, 2, 4, 2),
+                            IsHitTestVisible = false
+                        };
+
+                        Canvas.SetLeft(label, local.X);
+                        Canvas.SetTop(label, Math.Max(0, local.Y - 18));
+                        canvas.Children.Add(label);
+                    }
+
+                    if (!options.ShowOcrText || string.IsNullOrWhiteSpace(h.OcrText))
                         continue;
 
-                    var label = new TextBlock
+                    var ocrLabel = new TextBlock
                     {
-                        Text = h.UsernameNormalized,
-                        FontSize = 12,
-                        Foreground = System.Windows.Media.Brushes.LimeGreen,
+                        Text = h.OcrText,
+                        FontSize = 11,
+                        Foreground = System.Windows.Media.Brushes.LawnGreen,
                         Background = System.Windows.Media.Brushes.Black,
-                        Opacity = 0.8,
+                        Opacity = 0.75,
                         Padding = new Thickness(4, 2, 4, 2),
                         IsHitTestVisible = false
                     };
 
-                    Canvas.SetLeft(label, local.X);
-                    Canvas.SetTop(label, Math.Max(0, local.Y - 18));
-                    canvas.Children.Add(label);
+                    Canvas.SetLeft(ocrLabel, local.X);
+                    Canvas.SetTop(ocrLabel, local.Y + local.Height + 2);
+                    canvas.Children.Add(ocrLabel);
                 }
             });
         }
