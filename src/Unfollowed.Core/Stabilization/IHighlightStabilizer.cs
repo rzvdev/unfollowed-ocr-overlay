@@ -1,12 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Unfollowed.Core.Models;
 
 namespace Unfollowed.Core.Stabilization
 {
     public interface IHighlightStabilizer
     {
+        IReadOnlyList<Highlight> Stabilize(
+            IReadOnlyList<MatchCandidate> candidates,
+            RoiToScreenTransform transform,
+            StabilizerOptions options);
+
+        void Reset();
     }
 }
