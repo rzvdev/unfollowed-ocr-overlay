@@ -141,7 +141,7 @@ public sealed class DataTabViewModel : ViewModelBase
 
     private static string? PromptForCsvPath(string title)
     {
-        var dialog = new OpenFileDialog
+        var dialog = new Microsoft.Win32.OpenFileDialog
         {
             Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
             Title = title,
