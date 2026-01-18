@@ -8,6 +8,7 @@ namespace Unfollowed.App.Scan;
 
 public sealed record ScanSessionOptions(
     int TargetFps,
+    float OcrFrameDiffThreshold,
     PreprocessOptions Preprocess,
     OcrOptions Ocr,
     ExtractionOptions Extraction,
