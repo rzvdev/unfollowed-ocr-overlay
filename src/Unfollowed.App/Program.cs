@@ -65,6 +65,8 @@ public static class Program
                     return await ScanWithCsvAsync(provider, configuration, args);
                 case "overlay-test":
                     return await OverlayTestAsync(provider, args);
+                case "overlay-calibrate":
+                    return await OverlayCalibrateAsync(provider, args);
                 case "capture-test":
                     return await CaptureTestAsync(provider, args);
                 case "ocr-test":
@@ -150,6 +152,11 @@ public static class Program
         Console.WriteLine($"Following: {data.Following.Count}");
         Console.WriteLine($"Followers: {data.Followers.Count}");
         Console.WriteLine($"NonFollowBack: {data.NonFollowBack.Count}");
+        if (data.NonFollowBack.Count == 0)
+        {
+            Console.Error.WriteLine("No NonFollowBack entries found. Check your CSV inputs before scanning.");
+            return 1;
+        }
 
         var roiSelector = provider.GetRequiredService<IRoiSelector>();
         var controller = provider.GetRequiredService<IScanSessionController>();
@@ -221,6 +228,56 @@ public static class Program
         Console.ReadLine();
 
         await controller.StopAsync(CancellationToken.None);
+        return 0;
+    }
+
+    private static async Task<int> OverlayCalibrateAsync(ServiceProvider provider, string[] args)
+    {
+        // Usage:
+        // overlay-calibrate [x y w h]
+        //
+        // Examples:
+        // overlay-calibrate
+        // overlay-calibrate 200 150 800 600
+
+        var overlay = provider.GetRequiredService<IOverlayRenderer>();
+
+        var roi = new RoiSelection(200, 150, 800, 600);
+
+        if (args.Length == 5
+            && int.TryParse(args[1], out var x)
+            && int.TryParse(args[2], out var y)
+            && int.TryParse(args[3], out var w)
+            && int.TryParse(args[4], out var h))
+        {
+            roi = new RoiSelection(x, y, w, h);
+        }
+
+        var options = new OverlayOptions(
+            AlwaysOnTop: true,
+            ClickThrough: true,
+            ShowBadgeText: false
+        );
+
+        await overlay.InitializeAsync(roi, options, CancellationToken.None);
+
+        try
+        {
+            var highlights = BuildCalibrationHighlights(roi, 2f);
+            await overlay.RenderAsync(highlights, CancellationToken.None);
+
+            Console.WriteLine("Overlay calibration started.");
+            Console.WriteLine($"ROI: X={roi.X}, Y={roi.Y}, W={roi.Width}, H={roi.Height}");
+            Console.WriteLine("Verify the border and center lines align with the intended ROI.");
+            Console.WriteLine("Press ENTER to stop...");
+            Console.ReadLine();
+        }
+        finally
+        {
+            await overlay.ClearAsync(CancellationToken.None);
+            await overlay.DisposeAsync();
+        }
+
         return 0;
     }
 
@@ -489,6 +546,29 @@ public static class Program
         );
     }
 
+    private static IReadOnlyList<Highlight> BuildCalibrationHighlights(RoiSelection roi, float thickness)
+    {
+        var inset = thickness;
+        var left = roi.X;
+        var top = roi.Y;
+        var right = roi.X + roi.Width;
+        var bottom = roi.Y + roi.Height;
+        var centerX = left + roi.Width / 2f;
+        var centerY = top + roi.Height / 2f;
+
+        var highlights = new List<Highlight>
+        {
+            new("calibration_border_top", 1f, new RectF(left, top, roi.Width, thickness), true),
+            new("calibration_border_bottom", 1f, new RectF(left, bottom - thickness, roi.Width, thickness), true),
+            new("calibration_border_left", 1f, new RectF(left, top, thickness, roi.Height), true),
+            new("calibration_border_right", 1f, new RectF(right - thickness, top, thickness, roi.Height), true),
+            new("calibration_center_h", 1f, new RectF(left + inset, centerY - thickness / 2f, roi.Width - inset * 2, thickness), true),
+            new("calibration_center_v", 1f, new RectF(centerX - thickness / 2f, top + inset, thickness, roi.Height - inset * 2), true)
+        };
+
+        return highlights;
+    }
+
     private static void PrintHelp()
     {
         Console.WriteLine("GUI Unfollowed (OCR) - Skeleton");
@@ -498,6 +578,7 @@ public static class Program
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
         Console.WriteLine("  scan-csv <following.csv> <followers.csv>  Start scan loop with CSV input");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
+        Console.WriteLine("  overlay-calibrate [x y w h]               Show ROI border + guides for calibration");
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
         Console.WriteLine("  ocr-test [x y w h]                        Run capture/preprocess/OCR once and print tokens");
         Console.WriteLine();
