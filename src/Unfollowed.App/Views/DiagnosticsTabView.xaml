@@ -2,8 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Margin="24">
-        <Grid RowDefinitions="Auto,Auto,*">
-            <Grid ColumnDefinitions="*,Auto">
+        <Grid>
+            <Grid>
                 <TextBlock Text="Diagnostics" FontSize="18" FontWeight="SemiBold" />
                 <Button Grid.Column="1"
                         Content="Clear logs"
@@ -37,7 +37,7 @@
                      Padding="8">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" Margin="0,4">
+                        <Grid Margin="0,4">
                             <TextBlock Text="{Binding Timestamp, StringFormat={}{0:HH:mm:ss}}"
                                        Foreground="#B5B5B5" />
                             <TextBlock Text="{Binding Level}"
