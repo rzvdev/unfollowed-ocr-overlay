@@ -25,4 +25,8 @@
     <ProjectReference Include="..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
