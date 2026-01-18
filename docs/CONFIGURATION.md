@@ -21,9 +21,11 @@ Frame capture behavior for the OCR overlay.
 
 Image preprocessing settings applied before OCR runs.
 
-- `Profile`: Named preprocessing profile (for example, `Default`).
-- `Contrast`: Contrast multiplier applied to the captured frame.
-- `Sharpen`: Sharpening strength applied during preprocessing.
+- `ProfileName`: Named preprocessing profile selection (for example, `Default`).
+- `Profile`: Preprocessing mode used when no named profile is selected.
+- `Contrast`: Contrast multiplier applied to the captured frame when no named profile is selected.
+- `Sharpen`: Sharpening strength applied during preprocessing when no named profile is selected.
+- `Profiles`: Optional named profile overrides keyed by profile name.
 
 ## Ocr
 

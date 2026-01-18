@@ -131,6 +131,10 @@ public sealed class ScanSessionController : IScanSessionController
         var targetFps = Math.Max(1, options.TargetFps);
         var frameDuration = TimeSpan.FromSeconds(1.0 / targetFps);
         var frameIndex = 0L;
+        var processedCount = 0L;
+        var skippedCount = 0L;
+        ProcessedFrame? previousProcessed = null;
+        IReadOnlyList<Highlight> lastHighlights = Array.Empty<Highlight>();
 
         while (!ct.IsCancellationRequested)
         {
@@ -149,37 +153,71 @@ public sealed class ScanSessionController : IScanSessionController
                 var processed = _preprocessor.Process(frame, options.Preprocess);
                 var preprocessElapsed = Stopwatch.GetElapsedTime(preprocessStart);
 
-                var ocrStart = Stopwatch.GetTimestamp();
-                var ocrResult = await _ocr.RecognizeAsync(processed, options.Ocr, ct);
-                var ocrElapsed = Stopwatch.GetElapsedTime(ocrStart);
-                var tokens = ocrResult.Tokens
-                    .Select(token => (token.Text, token.RoiRect, token.Confidence))
-                    .ToArray();
+                var diffRatio = previousProcessed is null
+                    ? 1f
+                    : CalculateFrameDifference(processed, previousProcessed);
+                var shouldRunOcr = options.OcrFrameDiffThreshold <= 0f
+                    || previousProcessed is null
+                    || diffRatio >= options.OcrFrameDiffThreshold;
 
-                var extractStart = Stopwatch.GetTimestamp();
-                var candidates = _extractor.ExtractCandidates(
-                    tokens,
-                    options.Extraction,
-                    username => nonFollowBackSet.Contains(username),
-                    raw => _normalizer.Normalize(raw));
-                var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
+                if (shouldRunOcr)
+                {
+                    processedCount++;
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation(
+                            "Frame {Frame} OCR processed (diff={Diff:0.000}, threshold={Threshold:0.000}, processed={ProcessedCount}, skipped={SkippedCount}).",
+                            frameIndex,
+                            diffRatio,
+                            options.OcrFrameDiffThreshold,
+                            processedCount,
+                            skippedCount);
+                    }
 
-                var transform = new RoiToScreenTransform(
-                    roi.X,
-                    roi.Y,
-                    roi.Width,
-                    roi.Height,
-                    processed.Width,
-                    processed.Height);
+                    var ocrStart = Stopwatch.GetTimestamp();
+                    var ocrResult = await _ocr.RecognizeAsync(processed, options.Ocr, ct);
+                    var ocrElapsed = Stopwatch.GetElapsedTime(ocrStart);
+                    var tokens = ocrResult.Tokens
+                        .Select(token => (token.Text, token.RoiRect, token.Confidence))
+                        .ToArray();
 
-                var highlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                    var extractStart = Stopwatch.GetTimestamp();
+                    var candidates = _extractor.ExtractCandidates(
+                        tokens,
+                        options.Extraction,
+                        username => nonFollowBackSet.Contains(username),
+                        raw => _normalizer.Normalize(raw));
+                    var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
 
-                var renderStart = Stopwatch.GetTimestamp();
-                await _overlay.RenderAsync(highlights, ct);
-                var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
+                    var transform = new RoiToScreenTransform(
+                        roi.X,
+                        roi.Y,
+                        roi.Width,
+                        roi.Height,
+                        processed.Width,
+                        processed.Height);
 
-                var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
-                if (_logger.IsEnabled(LogLevel.Information))
+                    lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+
+                    var renderStart = Stopwatch.GetTimestamp();
+                    await _overlay.RenderAsync(lastHighlights, ct);
+                    var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
+
+                    var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
+                    if (_logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation(
+                            "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
+                            frameIndex++,
+                            captureElapsed.TotalMilliseconds,
+                            preprocessElapsed.TotalMilliseconds,
+                            ocrElapsed.TotalMilliseconds,
+                            extractElapsed.TotalMilliseconds,
+                            renderElapsed.TotalMilliseconds,
+                            totalElapsed.TotalMilliseconds);
+                    }
+                }
+                else
                 {
                     _logger.LogInformation(
                         "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
@@ -239,5 +277,33 @@ public sealed class ScanSessionController : IScanSessionController
         }
 
         return normalized;
+    }
+
+    private static float CalculateFrameDifference(ProcessedFrame current, ProcessedFrame previous)
+    {
+        if (current.Width != previous.Width || current.Height != previous.Height)
+        {
+            return 1f;
+        }
+
+        var currentBytes = current.Gray8;
+        var previousBytes = previous.Gray8;
+        if (currentBytes.Length != previousBytes.Length)
+        {
+            return 1f;
+        }
+
+        if (currentBytes.Length == 0)
+        {
+            return 0f;
+        }
+
+        long diffSum = 0;
+        for (var i = 0; i < currentBytes.Length; i++)
+        {
+            diffSum += Math.Abs(currentBytes[i] - previousBytes[i]);
+        }
+
+        return diffSum / (currentBytes.Length * 255f);
     }
 }

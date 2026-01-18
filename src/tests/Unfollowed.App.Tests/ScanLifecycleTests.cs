@@ -30,6 +30,7 @@ public sealed class ScanLifecycleTests
 
         var options = new ScanSessionOptions(
             TargetFps: 4,
+            OcrFrameDiffThreshold: 0.0f,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),

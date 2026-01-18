@@ -11,6 +11,7 @@ using Unfollowed.Csv;
 using Unfollowed.Ocr;
 using Unfollowed.Overlay;
 using Unfollowed.Preprocess;
+using System.Windows.Forms;
 
 namespace Unfollowed.App;
 
@@ -87,7 +88,7 @@ public static class Program
 
     private static int Compute(ServiceProvider provider, string[] args)
     {
-        if (args.Length < 3)
+        if (!TryResolveCsvInputs(args, out var followingPath, out var followersPath))
         {
             Console.Error.WriteLine("Usage: compute <following.csv> <followers.csv>");
             return 1;
@@ -96,8 +97,8 @@ public static class Program
         var importer = provider.GetRequiredService<ICsvImporter>();
         var calc = provider.GetRequiredService<INonFollowBackCalculator>();
 
-        var following = importer.ImportUsernames(args[1], new CsvImportOptions(), CancellationToken.None);
-        var followers = importer.ImportUsernames(args[2], new CsvImportOptions(), CancellationToken.None);
+        var following = importer.ImportUsernames(followingPath, new CsvImportOptions(), CancellationToken.None);
+        var followers = importer.ImportUsernames(followersPath, new CsvImportOptions(), CancellationToken.None);
         var data = calc.Compute(following, followers);
 
         PrintImportStats("Following", following);
@@ -158,7 +159,7 @@ public static class Program
 
     private static async Task<int> ScanWithCsvAsync(ServiceProvider provider, IConfiguration configuration, string[] args)
     {
-        if (args.Length < 3)
+        if (!TryResolveCsvInputs(args, out var followingPath, out var followersPath))
         {
             Console.Error.WriteLine("Usage: scan-csv <following.csv> <followers.csv>");
             return 1;
@@ -167,8 +168,8 @@ public static class Program
         var importer = provider.GetRequiredService<ICsvImporter>();
         var calculator = provider.GetRequiredService<INonFollowBackCalculator>();
 
-        var following = importer.ImportUsernames(args[1], new CsvImportOptions(), CancellationToken.None);
-        var followers = importer.ImportUsernames(args[2], new CsvImportOptions(), CancellationToken.None);
+        var following = importer.ImportUsernames(followingPath, new CsvImportOptions(), CancellationToken.None);
+        var followers = importer.ImportUsernames(followersPath, new CsvImportOptions(), CancellationToken.None);
         var data = calculator.Compute(following, followers);
 
         PrintImportStats("Following", following);
@@ -232,6 +233,7 @@ public static class Program
         // Overlay-focused options: make sure click-through is enabled.
         var options = new ScanSessionOptions(
             TargetFps: 1,
+            OcrFrameDiffThreshold: 0.0f,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
@@ -685,11 +687,19 @@ public static class Program
     {
         var targetFps = configuration.GetValue("Scan:TargetFps", 4);
 
-        var preprocessOptions = new PreprocessOptions(
+        var defaultPreprocessOptions = new PreprocessOptions(
             Profile: configuration.GetValue("Preprocess:Profile", PreprocessProfile.Default),
             Contrast: configuration.GetValue("Preprocess:Contrast", 1.0f),
             Sharpen: configuration.GetValue("Preprocess:Sharpen", 0.0f)
         );
+        var selectedPreprocessProfile = configuration.GetValue<string?>("Preprocess:ProfileName");
+        var namedPreprocessProfiles = configuration
+            .GetSection("Preprocess:Profiles")
+            .Get<Dictionary<string, PreprocessOptions>>();
+        var preprocessOptions = PreprocessProfileCatalog.Resolve(
+            selectedPreprocessProfile,
+            namedPreprocessProfiles,
+            defaultPreprocessOptions);
 
         var ocrOptions = new OcrOptions(
             LanguageTag: configuration.GetValue("Ocr:LanguageTag", "en"),
@@ -720,6 +730,7 @@ public static class Program
 
         return new ScanSessionOptions(
             TargetFps: targetFps,
+            OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
             Preprocess: preprocessOptions,
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
@@ -798,5 +809,60 @@ public static class Program
         {
             Console.WriteLine($"  detected column: {result.DetectedUsernameColumn}");
         }
+    }
+
+    private static bool TryResolveCsvInputs(string[] args, out string followingPath, out string followersPath)
+    {
+        if (args.Length >= 3)
+        {
+            followingPath = args[1];
+            followersPath = args[2];
+            return true;
+        }
+
+        followingPath = string.Empty;
+        followersPath = string.Empty;
+
+        var followingSelection = PromptForCsvPath("Select following.csv");
+        if (string.IsNullOrWhiteSpace(followingSelection))
+        {
+            return false;
+        }
+
+        var followersSelection = PromptForCsvPath("Select followers.csv");
+        if (string.IsNullOrWhiteSpace(followersSelection))
+        {
+            return false;
+        }
+
+        followingPath = followingSelection;
+        followersPath = followersSelection;
+        return true;
+    }
+
+    private static string? PromptForCsvPath(string title)
+    {
+        string? selection = null;
+        var dialogThread = new Thread(() =>
+        {
+            using var dialog = new OpenFileDialog
+            {
+                Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
+                Title = title,
+                CheckFileExists = true,
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                selection = dialog.FileName;
+            }
+        });
+
+        dialogThread.SetApartmentState(ApartmentState.STA);
+        dialogThread.Start();
+        dialogThread.Join();
+
+        return selection;
     }
 }
