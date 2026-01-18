@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Unfollowed.Core\Unfollowed.Core.csproj" />
-    <ProjectReference Include="..\Unfolloweed.Preprocess\Unfolloweed.Preprocess.csproj" />
+    <ProjectReference Include="..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
   </ItemGroup>
 
   <ItemGroup>
