@@ -2,6 +2,11 @@ using System.Runtime.InteropServices;
 
 namespace Unfollowed.Capture;
 
+/// <summary>
+/// Win32 screen capture interop surface. The caller owns any HDC/HBITMAP handles returned by these
+/// methods and is responsible for releasing them with <see cref="ReleaseDC"/>,
+/// <see cref="DeleteDC"/>, and <see cref="DeleteObject"/> as appropriate.
+/// </summary>
 public interface IWin32ScreenApi
 {
     IntPtr GetDC(IntPtr hWnd);
@@ -29,6 +34,15 @@ public interface IWin32ScreenApi
         uint dwRop);
 }
 
+/// <summary>
+/// Captures the desktop using a DIB section. <see cref="InitializeAsync"/> must be called before
+/// <see cref="CaptureAsync"/> to create and select the backing bitmap, and this instance owns the
+/// DC/bitmap handles it allocates until <see cref="DisposeAsync"/> releases them.
+/// </summary>
+/// <remarks>
+/// Frames are captured in BGRA32 format (little-endian 32bpp) with ROI coordinates expressed in
+/// screen pixels relative to the virtual desktop origin.
+/// </remarks>
 public sealed class Win32FrameCapture : IFrameCapture
 {
     private const int BI_RGB = 0;
@@ -189,6 +203,9 @@ public sealed class Win32FrameCapture : IFrameCapture
     }
 }
 
+/// <summary>
+/// BITMAPINFO container describing a BGRA32 DIB section for screen capture.
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct Win32BitmapInfo
 {
@@ -197,6 +214,9 @@ public struct Win32BitmapInfo
     public uint[] bmiColors;
 }
 
+/// <summary>
+/// BITMAPINFOHEADER describing a 32bpp top-down bitmap used for BGRA32 capture.
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct Win32BitmapInfoHeader
 {
@@ -213,6 +233,10 @@ public struct Win32BitmapInfoHeader
     public uint biClrImportant;
 }
 
+/// <summary>
+/// Default Win32 screen API implementation. Callers are responsible for releasing any handles
+/// returned by these methods.
+/// </summary>
 public sealed class Win32ScreenApi : IWin32ScreenApi
 {
     public IntPtr GetDC(IntPtr hWnd) => NativeMethods.GetDC(hWnd);

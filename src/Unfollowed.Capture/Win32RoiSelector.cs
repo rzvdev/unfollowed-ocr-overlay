@@ -4,6 +4,10 @@ namespace Unfollowed.Capture;
 
 public delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, IntPtr lprcMonitor, IntPtr dwData);
 
+/// <summary>
+/// Win32 cursor/monitor interop surface for ROI selection. The caller owns the HDC returned by
+/// <see cref="GetDC"/> and must release it with <see cref="ReleaseDC"/>.
+/// </summary>
 public interface IWin32CursorApi
 {
     IntPtr GetDC(IntPtr hWnd);
@@ -20,6 +24,15 @@ public interface IWin32CursorApi
         IntPtr dwData);
 }
 
+/// <summary>
+/// Interactive ROI selector that tracks the mouse in physical pixels. If physical cursor
+/// coordinates are unavailable, it falls back to logical coordinates.
+/// </summary>
+/// <remarks>
+/// The monitor index is computed by enumerating display monitors in Win32 order and matching the
+/// monitor containing the initial mouse-down point. That index is stored in the resulting
+/// <see cref="RoiSelection"/> and is used downstream to target the corresponding monitor.
+/// </remarks>
 public sealed class Win32RoiSelector : IRoiSelector
 {
     private const int VK_LBUTTON = 0x01;
@@ -173,6 +186,9 @@ public sealed class Win32RoiSelector : IRoiSelector
     }
 }
 
+/// <summary>
+/// Win32 POINT in screen coordinates (physical pixels when available).
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct Win32Point
 {
@@ -180,6 +196,9 @@ public struct Win32Point
     public int Y;
 }
 
+/// <summary>
+/// Win32 RECT in screen coordinates (physical pixels when available).
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct Win32Rect
 {
@@ -189,6 +208,10 @@ public struct Win32Rect
     public int Bottom;
 }
 
+/// <summary>
+/// Default Win32 cursor API implementation. Callers are responsible for releasing any handles
+/// returned by these methods.
+/// </summary>
 public sealed class Win32CursorApi : IWin32CursorApi
 {
     public IntPtr GetDC(IntPtr hWnd) => NativeMethods.GetDC(hWnd);
