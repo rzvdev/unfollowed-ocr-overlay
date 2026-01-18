@@ -131,4 +131,45 @@ public sealed class RegexUsernameExtractorTests
 
         Assert.Empty(candidates);
     }
+
+    [Fact]
+    public void ExtractCandidates_KeepsHighestConfidencePerUsername()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("@casey", SampleRect, 0.7f),
+            ("@casey", SampleRect, 0.92f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(),
+            _ => true,
+            normalizer.Normalize);
+
+        var candidate = Assert.Single(candidates);
+        Assert.Equal("casey", candidate.UsernameNormalized);
+        Assert.Equal(0.92f, candidate.Confidence);
+    }
+
+    [Fact]
+    public void ExtractCandidates_FiltersNonFollowBackUsers()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("@drew", SampleRect, 0.9f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(),
+            _ => false,
+            normalizer.Normalize);
+
+        Assert.Empty(candidates);
+    }
 }
