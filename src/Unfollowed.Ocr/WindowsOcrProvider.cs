@@ -7,8 +7,20 @@ using Unfollowed.Preprocess;
 
 namespace Unfollowed.Ocr;
 
+public interface IWindowsOcrEngineFactory
+{
+    OcrEngine? CreateEngine(OcrOptions options);
+}
+
 public sealed class WindowsOcrProvider : IOcrProvider
 {
+    private readonly IWindowsOcrEngineFactory _engineFactory;
+
+    public WindowsOcrProvider(IWindowsOcrEngineFactory? engineFactory = null)
+    {
+        _engineFactory = engineFactory ?? new WindowsOcrEngineFactory();
+    }
+
     public async Task<OcrResult> RecognizeAsync(ProcessedFrame frame, OcrOptions options, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -21,7 +33,7 @@ public sealed class WindowsOcrProvider : IOcrProvider
         using var bitmap = new SoftwareBitmap(BitmapPixelFormat.Gray8, frame.Width, frame.Height, BitmapAlphaMode.Ignore);
         bitmap.CopyFromBuffer(frame.Gray8.AsBuffer());
 
-        var engine = CreateEngine(options);
+        var engine = _engineFactory.CreateEngine(options);
         if (engine is null)
         {
             throw new InvalidOperationException("Windows OCR engine could not be created.");
@@ -76,24 +88,6 @@ public sealed class WindowsOcrProvider : IOcrProvider
         return confidence;
     }
 
-    private static OcrEngine? CreateEngine(OcrOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.LanguageTag))
-        {
-            try
-            {
-                var language = new Language(options.LanguageTag);
-                return OcrEngine.TryCreateFromLanguage(language) ?? OcrEngine.TryCreateFromUserProfileLanguages();
-            }
-            catch (ArgumentException)
-            {
-                return OcrEngine.TryCreateFromUserProfileLanguages();
-            }
-        }
-
-        return OcrEngine.TryCreateFromUserProfileLanguages();
-    }
-
     private static HashSet<char>? BuildWhitelist(string? whitelist)
     {
         if (string.IsNullOrWhiteSpace(whitelist))
@@ -116,5 +110,26 @@ public sealed class WindowsOcrProvider : IOcrProvider
         }
 
         return true;
+    }
+}
+
+public sealed class WindowsOcrEngineFactory : IWindowsOcrEngineFactory
+{
+    public OcrEngine? CreateEngine(OcrOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.LanguageTag))
+        {
+            try
+            {
+                var language = new Language(options.LanguageTag);
+                return OcrEngine.TryCreateFromLanguage(language) ?? OcrEngine.TryCreateFromUserProfileLanguages();
+            }
+            catch (ArgumentException)
+            {
+                return OcrEngine.TryCreateFromUserProfileLanguages();
+            }
+        }
+
+        return OcrEngine.TryCreateFromUserProfileLanguages();
     }
 }

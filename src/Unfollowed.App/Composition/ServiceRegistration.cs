@@ -52,13 +52,16 @@ namespace Unfollowed.App.Composition
             }
             else
             {
+                services.AddSingleton<IWin32ScreenApi, Win32ScreenApi>();
                 services.AddSingleton<IFrameCapture, Win32FrameCapture>();
             }
             services.AddSingleton<IFramePreprocessor, BasicFramePreprocessor>();
+            services.AddSingleton<IWindowsOcrEngineFactory, WindowsOcrEngineFactory>();
             services.AddSingleton<IOcrProvider, WindowsOcrProvider>();
             //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
             //services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
             services.AddTransient<IOverlayRenderer, Win32OverlayRenderer>();
+            services.AddSingleton<IWin32CursorApi, Win32CursorApi>();
             services.AddSingleton<IRoiSelector, Win32RoiSelector>();
 
             return services;
