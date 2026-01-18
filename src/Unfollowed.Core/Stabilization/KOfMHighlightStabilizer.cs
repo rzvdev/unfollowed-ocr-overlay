@@ -64,6 +64,7 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
 
                 highlights.Add(new Highlight(
                     candidate.UsernameNormalized,
+                    candidate.OcrText,
                     candidate.Confidence,
                     transform.ToScreen(candidate.RoiRect),
                     true));
@@ -72,6 +73,7 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
             {
                 highlights.Add(new Highlight(
                     candidate.UsernameNormalized,
+                    candidate.OcrText,
                     candidate.Confidence,
                     transform.ToScreen(candidate.RoiRect),
                     false));
