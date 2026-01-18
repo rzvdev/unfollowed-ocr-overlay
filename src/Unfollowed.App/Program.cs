@@ -268,7 +268,7 @@ public static class Program
 
             Console.WriteLine("Overlay calibration started.");
             Console.WriteLine($"ROI: X={roi.X}, Y={roi.Y}, W={roi.Width}, H={roi.Height}");
-            Console.WriteLine("Verify the border and center lines align with the intended ROI.");
+            Console.WriteLine("Verify borders, center lines, and third guides align with the intended ROI.");
             Console.WriteLine("Press ENTER to stop...");
             Console.ReadLine();
         }
@@ -548,13 +548,24 @@ public static class Program
 
     private static IReadOnlyList<Highlight> BuildCalibrationHighlights(RoiSelection roi, float thickness)
     {
-        var inset = thickness;
+        var minDimension = MathF.Min(roi.Width, roi.Height);
+        var inset = MathF.Max(thickness * 2f, minDimension * 0.05f);
         var left = roi.X;
         var top = roi.Y;
         var right = roi.X + roi.Width;
         var bottom = roi.Y + roi.Height;
+        var maxInset = MathF.Max(thickness, minDimension / 2f - thickness);
+        inset = MathF.Min(inset, maxInset);
+        var innerWidth = MathF.Max(1f, roi.Width - inset * 2);
+        var innerHeight = MathF.Max(1f, roi.Height - inset * 2);
+        var innerLeft = left + inset;
+        var innerTop = top + inset;
         var centerX = left + roi.Width / 2f;
         var centerY = top + roi.Height / 2f;
+        var thirdX = left + roi.Width / 3f;
+        var twoThirdX = left + roi.Width * 2f / 3f;
+        var thirdY = top + roi.Height / 3f;
+        var twoThirdY = top + roi.Height * 2f / 3f;
 
         var highlights = new List<Highlight>
         {
@@ -562,8 +573,16 @@ public static class Program
             new("calibration_border_bottom", 1f, new RectF(left, bottom - thickness, roi.Width, thickness), true),
             new("calibration_border_left", 1f, new RectF(left, top, thickness, roi.Height), true),
             new("calibration_border_right", 1f, new RectF(right - thickness, top, thickness, roi.Height), true),
-            new("calibration_center_h", 1f, new RectF(left + inset, centerY - thickness / 2f, roi.Width - inset * 2, thickness), true),
-            new("calibration_center_v", 1f, new RectF(centerX - thickness / 2f, top + inset, thickness, roi.Height - inset * 2), true)
+            new("calibration_inset_top", 1f, new RectF(innerLeft, innerTop, innerWidth, thickness), true),
+            new("calibration_inset_bottom", 1f, new RectF(innerLeft, bottom - inset - thickness, innerWidth, thickness), true),
+            new("calibration_inset_left", 1f, new RectF(innerLeft, innerTop, thickness, innerHeight), true),
+            new("calibration_inset_right", 1f, new RectF(right - inset - thickness, innerTop, thickness, innerHeight), true),
+            new("calibration_center_h", 1f, new RectF(innerLeft, centerY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_center_v", 1f, new RectF(centerX - thickness / 2f, innerTop, thickness, innerHeight), true),
+            new("calibration_third_h", 1f, new RectF(innerLeft, thirdY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_two_third_h", 1f, new RectF(innerLeft, twoThirdY - thickness / 2f, innerWidth, thickness), true),
+            new("calibration_third_v", 1f, new RectF(thirdX - thickness / 2f, innerTop, thickness, innerHeight), true),
+            new("calibration_two_third_v", 1f, new RectF(twoThirdX - thickness / 2f, innerTop, thickness, innerHeight), true)
         };
 
         return highlights;
