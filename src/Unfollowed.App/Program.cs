@@ -61,6 +61,8 @@ public static class Program
                     return Compute(provider, args);
                 case "scan":
                     return await ScanAsync(provider, configuration);
+                case "scan-csv":
+                    return await ScanWithCsvAsync(provider, configuration, args);
                 case "overlay-test":
                     return await OverlayTestAsync(provider, args);
                 case "capture-test":
@@ -124,6 +126,39 @@ public static class Program
         await controller.StartAsync(data, roi, options, CancellationToken.None);
 
         Console.WriteLine("Scanning started (stubs). Press ENTER to stop...");
+        Console.ReadLine();
+
+        await controller.StopAsync(CancellationToken.None);
+        return 0;
+    }
+
+    private static async Task<int> ScanWithCsvAsync(ServiceProvider provider, IConfiguration configuration, string[] args)
+    {
+        if (args.Length < 3)
+        {
+            Console.Error.WriteLine("Usage: scan-csv <following.csv> <followers.csv>");
+            return 1;
+        }
+
+        var importer = provider.GetRequiredService<ICsvImporter>();
+        var calculator = provider.GetRequiredService<INonFollowBackCalculator>();
+
+        var following = importer.ImportUsernames(args[1], new CsvImportOptions(), CancellationToken.None);
+        var followers = importer.ImportUsernames(args[2], new CsvImportOptions(), CancellationToken.None);
+        var data = calculator.Compute(following, followers);
+
+        Console.WriteLine($"Following: {data.Following.Count}");
+        Console.WriteLine($"Followers: {data.Followers.Count}");
+        Console.WriteLine($"NonFollowBack: {data.NonFollowBack.Count}");
+
+        var roiSelector = provider.GetRequiredService<IRoiSelector>();
+        var controller = provider.GetRequiredService<IScanSessionController>();
+        var roi = await roiSelector.SelectRegionAsync(CancellationToken.None);
+        var options = BuildScanOptions(configuration);
+
+        await controller.StartAsync(data, roi, options, CancellationToken.None);
+
+        Console.WriteLine("Scanning started. Press ENTER to stop...");
         Console.ReadLine();
 
         await controller.StopAsync(CancellationToken.None);
@@ -461,6 +496,7 @@ public static class Program
         Console.WriteLine("Commands:");
         Console.WriteLine("  compute <following.csv> <followers.csv>   Compute NonFollowBack counts");
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
+        Console.WriteLine("  scan-csv <following.csv> <followers.csv>  Start scan loop with CSV input");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
         Console.WriteLine("  ocr-test [x y w h]                        Run capture/preprocess/OCR once and print tokens");
