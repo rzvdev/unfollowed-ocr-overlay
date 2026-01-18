@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
+using Unfollowed.App.Composition;
 using Unfollowed.App.ViewModels;
 
 namespace Unfollowed.App;
@@ -13,6 +14,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         var services = new ServiceCollection();
+        services.AddUnfollowedCsv();
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<DataTabViewModel>();
         services.AddSingleton<ScanningTabViewModel>();
