@@ -60,7 +60,7 @@ public static class Program
                 case "compute":
                     return Compute(provider, args);
                 case "scan":
-                    return await ScanAsync(provider);
+                    return await ScanAsync(provider, configuration);
                 case "overlay-test":
                     return await OverlayTestAsync(provider, args);
                 case "capture-test":
@@ -101,7 +101,7 @@ public static class Program
         return 0;
     }
 
-    private static async Task<int> ScanAsync(ServiceProvider provider)
+    private static async Task<int> ScanAsync(ServiceProvider provider, IConfiguration configuration)
     {
         // Skeleton scan uses stubs for ROI selection, capture, OCR and overlay.
         // Replace stubs with Windows implementations to enable real-time highlighting.
@@ -119,14 +119,7 @@ public static class Program
             FollowersStats: new CsvImportStats(0, 0, 0, 0)
         );
 
-        var options = new ScanSessionOptions(
-            TargetFps: 4,
-            Preprocess: new PreprocessOptions(),
-            Ocr: new OcrOptions(),
-            Extraction: new ExtractionOptions(),
-            Stabilizer: new StabilizerOptions(),
-            Overlay: new OverlayOptions()
-        );
+        var options = BuildScanOptions(configuration);
 
         await controller.StartAsync(data, roi, options, CancellationToken.None);
 
@@ -427,6 +420,39 @@ public static class Program
     private static bool IsPreprocessFlag(string arg)
         => arg.Equals("--preprocess", StringComparison.OrdinalIgnoreCase)
             || arg.Equals("--gray", StringComparison.OrdinalIgnoreCase);
+
+    private static ScanSessionOptions BuildScanOptions(IConfiguration configuration)
+    {
+        var targetFps = configuration.GetValue("Scan:TargetFps", 4);
+
+        var preprocessOptions = new PreprocessOptions(
+            Profile: configuration.GetValue("Preprocess:Profile", PreprocessProfile.Default),
+            Contrast: configuration.GetValue("Preprocess:Contrast", 1.0f),
+            Sharpen: configuration.GetValue("Preprocess:Sharpen", 0.0f)
+        );
+
+        var ocrOptions = new OcrOptions(
+            LanguageTag: configuration.GetValue("Ocr:LanguageTag", "en"),
+            MinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
+            CharacterWhitelist: configuration.GetValue<string?>("Ocr:CharacterWhitelist", "abcdefghijklmnopqrstuvwxyz0123456789._@")
+        );
+
+        var stabilizerOptions = new StabilizerOptions(
+            WindowSizeM: configuration.GetValue("Stabilizer:WindowSizeM", 3),
+            RequiredK: configuration.GetValue("Stabilizer:RequiredK", 2),
+            ConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.60f),
+            AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false)
+        );
+
+        return new ScanSessionOptions(
+            TargetFps: targetFps,
+            Preprocess: preprocessOptions,
+            Ocr: ocrOptions,
+            Extraction: new ExtractionOptions(),
+            Stabilizer: stabilizerOptions,
+            Overlay: new OverlayOptions()
+        );
+    }
 
     private static void PrintHelp()
     {

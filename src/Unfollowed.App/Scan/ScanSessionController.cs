@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Unfollowed.Capture;
 using Unfollowed.Core.Models;
 using Unfollowed.Core.Extraction;
@@ -26,6 +27,7 @@ public sealed class ScanSessionController : IScanSessionController
     private readonly IUsernameExtractor _extractor;
     private readonly IHighlightStabilizer _stabilizer;
     private readonly IUsernameNormalizer _normalizer;
+    private readonly ILogger<ScanSessionController> _logger;
     private CancellationTokenSource? _sessionCts;
     private Task? _sessionTask;
 
@@ -36,7 +38,8 @@ public sealed class ScanSessionController : IScanSessionController
         IOcrProvider ocr,
         IUsernameExtractor extractor,
         IHighlightStabilizer stabilizer,
-        IUsernameNormalizer normalizer)
+        IUsernameNormalizer normalizer,
+        ILogger<ScanSessionController> logger)
     {
         _overlay = overlay;
         _capture = capture;
@@ -45,6 +48,7 @@ public sealed class ScanSessionController : IScanSessionController
         _extractor = extractor;
         _stabilizer = stabilizer;
         _normalizer = normalizer;
+        _logger = logger;
     }
 
     public async Task StartAsync(NonFollowBackData data, RoiSelection roi, ScanSessionOptions options, CancellationToken ct)
@@ -99,6 +103,7 @@ public sealed class ScanSessionController : IScanSessionController
     {
         var targetFps = Math.Max(1, options.TargetFps);
         var frameDuration = TimeSpan.FromSeconds(1.0 / targetFps);
+        var frameIndex = 0L;
 
         while (!ct.IsCancellationRequested)
         {
@@ -106,18 +111,28 @@ public sealed class ScanSessionController : IScanSessionController
 
             try
             {
+                var captureStart = Stopwatch.GetTimestamp();
                 var frame = await _capture.CaptureAsync(ct);
+                var captureElapsed = Stopwatch.GetElapsedTime(captureStart);
+
+                var preprocessStart = Stopwatch.GetTimestamp();
                 var processed = _preprocessor.Process(frame, options.Preprocess);
+                var preprocessElapsed = Stopwatch.GetElapsedTime(preprocessStart);
+
+                var ocrStart = Stopwatch.GetTimestamp();
                 var ocrResult = await _ocr.RecognizeAsync(processed, options.Ocr, ct);
+                var ocrElapsed = Stopwatch.GetElapsedTime(ocrStart);
                 var tokens = ocrResult.Tokens
                     .Select(token => (token.Text, token.RoiRect, token.Confidence))
                     .ToArray();
 
+                var extractStart = Stopwatch.GetTimestamp();
                 var candidates = _extractor.ExtractCandidates(
                     tokens,
                     options.Extraction,
                     username => nonFollowBackSet.Contains(username),
                     raw => _normalizer.Normalize(raw));
+                var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
 
                 var transform = new RoiToScreenTransform(
                     roi.X,
@@ -128,14 +143,32 @@ public sealed class ScanSessionController : IScanSessionController
                     processed.Height);
 
                 var highlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+
+                var renderStart = Stopwatch.GetTimestamp();
                 await _overlay.RenderAsync(highlights, ct);
+                var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
+
+                var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation(
+                        "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
+                        frameIndex++,
+                        captureElapsed.TotalMilliseconds,
+                        preprocessElapsed.TotalMilliseconds,
+                        ocrElapsed.TotalMilliseconds,
+                        extractElapsed.TotalMilliseconds,
+                        renderElapsed.TotalMilliseconds,
+                        totalElapsed.TotalMilliseconds);
+                }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 break;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Scan loop failed");
                 break;
             }
 
