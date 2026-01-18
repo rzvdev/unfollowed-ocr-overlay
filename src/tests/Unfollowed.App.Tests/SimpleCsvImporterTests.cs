@@ -22,7 +22,7 @@ public sealed class SimpleCsvImporterTests
             var result = importer.ImportUsernames(path, options, CancellationToken.None);
 
             Assert.Equal("Handle", result.DetectedUsernameColumn);
-            Assert.Equal(new[] { "foo", "bar" }, result.UsernamesNormalized.OrderBy(x => x));
+            Assert.Equal(new[] { "bar", "foo" }, result.UsernamesNormalized.OrderBy(x => x).ToArray());
             Assert.Equal(2, result.Stats.TotalRows);
             Assert.Equal(2, result.Stats.ValidUsernames);
             Assert.Equal(0, result.Stats.InvalidRows);
@@ -51,7 +51,7 @@ public sealed class SimpleCsvImporterTests
             var result = importer.ImportUsernames(path, options, CancellationToken.None);
 
             Assert.Equal("USERNAME", result.DetectedUsernameColumn);
-            Assert.Equal(new[] { "one", "two" }, result.UsernamesNormalized.OrderBy(x => x));
+            Assert.Equal(new[] { "one", "two" }, result.UsernamesNormalized.OrderBy(x => x).ToArray());
             Assert.Equal(2, result.Stats.TotalRows);
             Assert.Equal(2, result.Stats.ValidUsernames);
             Assert.Equal(0, result.Stats.InvalidRows);
@@ -79,7 +79,7 @@ public sealed class SimpleCsvImporterTests
             var result = importer.ImportUsernames(path, options, CancellationToken.None);
 
             Assert.Null(result.DetectedUsernameColumn);
-            Assert.Equal(new[] { "first", "second" }, result.UsernamesNormalized.OrderBy(x => x));
+            Assert.Equal(new[] { "first", "second" }, result.UsernamesNormalized.OrderBy(x => x).ToArray());
             Assert.Equal(2, result.Stats.TotalRows);
             Assert.Equal(2, result.Stats.ValidUsernames);
             Assert.Equal(0, result.Stats.InvalidRows);
@@ -108,7 +108,7 @@ public sealed class SimpleCsvImporterTests
 
             var result = importer.ImportUsernames(path, options, CancellationToken.None);
 
-            Assert.Equal(new[] { "first", "second" }, result.UsernamesNormalized.OrderBy(x => x));
+            Assert.Equal(new[] { "first", "second" }, result.UsernamesNormalized.OrderBy(x => x).ToArray());
             Assert.Equal(2, result.Stats.TotalRows);
             Assert.Equal(2, result.Stats.ValidUsernames);
             Assert.Equal(0, result.Stats.InvalidRows);
@@ -169,7 +169,7 @@ public sealed class SimpleCsvImporterTests
             var result = importer.ImportUsernames(path, options, CancellationToken.None);
 
             Assert.Equal("username", result.DetectedUsernameColumn);
-            Assert.Equal(new[] { "bar", "foo" }, result.UsernamesNormalized.OrderBy(x => x));
+            Assert.Equal(new[] { "bar", "foo" }, result.UsernamesNormalized.OrderBy(x => x).ToArray());
             Assert.Equal(4, result.Stats.TotalRows);
             Assert.Equal(2, result.Stats.ValidUsernames);
             Assert.Equal(0, result.Stats.InvalidRows);
