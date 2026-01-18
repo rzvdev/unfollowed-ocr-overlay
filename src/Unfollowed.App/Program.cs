@@ -685,11 +685,19 @@ public static class Program
     {
         var targetFps = configuration.GetValue("Scan:TargetFps", 4);
 
-        var preprocessOptions = new PreprocessOptions(
+        var defaultPreprocessOptions = new PreprocessOptions(
             Profile: configuration.GetValue("Preprocess:Profile", PreprocessProfile.Default),
             Contrast: configuration.GetValue("Preprocess:Contrast", 1.0f),
             Sharpen: configuration.GetValue("Preprocess:Sharpen", 0.0f)
         );
+        var selectedPreprocessProfile = configuration.GetValue<string?>("Preprocess:ProfileName");
+        var namedPreprocessProfiles = configuration
+            .GetSection("Preprocess:Profiles")
+            .Get<Dictionary<string, PreprocessOptions>>();
+        var preprocessOptions = PreprocessProfileCatalog.Resolve(
+            selectedPreprocessProfile,
+            namedPreprocessProfiles,
+            defaultPreprocessOptions);
 
         var ocrOptions = new OcrOptions(
             LanguageTag: configuration.GetValue("Ocr:LanguageTag", "en"),
