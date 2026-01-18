@@ -216,21 +216,20 @@ public sealed class ScanSessionController : IScanSessionController
                             renderElapsed.TotalMilliseconds,
                             totalElapsed.TotalMilliseconds);
                     }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
+                            frameNumber,
+                            captureElapsed.TotalMilliseconds,
+                            preprocessElapsed.TotalMilliseconds,
+                            ocrElapsed.TotalMilliseconds,
+                            extractElapsed.TotalMilliseconds,
+                            renderElapsed.TotalMilliseconds,
+                            totalElapsed.TotalMilliseconds);
+                    }
+                    frameIndex++;
                 }
-                else
-                {
-                    _logger.LogInformation(
-                        "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
-                        frameNumber,
-                        captureElapsed.TotalMilliseconds,
-                        preprocessElapsed.TotalMilliseconds,
-                        ocrElapsed.TotalMilliseconds,
-                        extractElapsed.TotalMilliseconds,
-                        renderElapsed.TotalMilliseconds,
-                        totalElapsed.TotalMilliseconds);
-                }
-
-                frameIndex++;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
