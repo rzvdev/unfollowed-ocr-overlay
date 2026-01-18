@@ -25,7 +25,6 @@
     <ProjectReference Include="..\..\Unfollowed.Ocr\Unfollowed.Ocr.csproj" />
     <ProjectReference Include="..\..\Unfolloweed.Preprocess\Unfolloweed.Preprocess.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Overlay\Unfollowed.Overlay.csproj" />
-    <ProjectReference Include="..\..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
   </ItemGroup>
 
   <ItemGroup>
