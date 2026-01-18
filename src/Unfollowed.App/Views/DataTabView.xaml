@@ -2,6 +2,33 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Margin="24">
-        <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" />
+        <StackPanel>
+            <TextBlock Text="Import CSV data" FontSize="18" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                <Button Content="Load following CSV"
+                        Command="{Binding LoadFollowingCsvCommand}"
+                        Width="170"
+                        Margin="0,0,12,0" />
+                <Button Content="Load followers CSV"
+                        Command="{Binding LoadFollowersCsvCommand}"
+                        Width="170" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" Margin="0,16,0,0" />
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="Tomato" TextWrapping="Wrap" />
+            <StackPanel Margin="0,16,0,0">
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Following" Width="160" />
+                    <TextBlock Text="{Binding FollowingCount}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Followers" Width="160" />
+                    <TextBlock Text="{Binding FollowersCount}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock Text="Not following back" Width="160" />
+                    <TextBlock Text="{Binding NonFollowBackCount}" />
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </UserControl>
