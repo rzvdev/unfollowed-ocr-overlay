@@ -11,8 +11,14 @@ using Unfollowed.Preprocess;
 
 namespace Unfollowed.App.Scan;
 
+/// <summary>
+/// Orchestrates the live scan pipeline by initializing capture/overlay dependencies, running the
+/// per-frame OCR and highlight stabilization loop, and coordinating cancellation/shutdown to ensure
+/// overlays and capture resources are released cleanly between sessions.
+/// </summary>
 public sealed class ScanSessionController : IScanSessionController
 {
+    // Fallback list enables a demo pipeline run when no real non-follow-back data is provided.
     private static readonly string[] FallbackNonFollowBack =
     {
         "unfollowed_demo",
@@ -51,6 +57,14 @@ public sealed class ScanSessionController : IScanSessionController
         _logger = logger;
     }
 
+    /// <summary>
+    /// Starts a scan session by resetting the stabilizer, initializing capture and overlay dependencies,
+    /// normalizing the non-follow-back set, and launching the scan loop with a linked cancellation token.
+    /// </summary>
+    /// <param name="data">The data set that supplies non-follow-back usernames.</param>
+    /// <param name="roi">The region of interest for capture and overlay initialization.</param>
+    /// <param name="options">Options that control preprocess, OCR, and overlay behavior.</param>
+    /// <param name="ct">Cancellation token used for initialization and linked to the scan loop.</param>
     public async Task StartAsync(NonFollowBackData data, RoiSelection roi, ScanSessionOptions options, CancellationToken ct)
     {
         if (_sessionTask is { IsCompleted: false })
@@ -68,6 +82,11 @@ public sealed class ScanSessionController : IScanSessionController
         _sessionTask = RunLoopAsync(roi, options, normalizedSet, _sessionCts.Token);
     }
 
+    /// <summary>
+    /// Signals cancellation, waits for the scan loop to exit, and guarantees cleanup by clearing overlays
+    /// and disposing capture/overlay resources regardless of cancellation.
+    /// </summary>
+    /// <param name="ct">Cancellation token used for overlay cleanup.</param>
     public async Task StopAsync(CancellationToken ct)
     {
         _sessionCts?.Cancel();
@@ -95,6 +114,14 @@ public sealed class ScanSessionController : IScanSessionController
         await _capture.DisposeAsync();
     }
 
+    /// <summary>
+    /// Runs the per-frame scan loop, measuring timing for capture, preprocess, OCR, extraction,
+    /// stabilization, and render stages while respecting the target FPS and logging frame timings.
+    /// </summary>
+    /// <param name="roi">The region of interest used to map OCR coordinates to the screen.</param>
+    /// <param name="options">Options that control the pipeline stages.</param>
+    /// <param name="nonFollowBackSet">Normalized set of usernames to match during extraction.</param>
+    /// <param name="ct">Cancellation token that stops the loop and skips delay waits.</param>
     private async Task RunLoopAsync(
         RoiSelection roi,
         ScanSessionOptions options,
@@ -190,10 +217,12 @@ public sealed class ScanSessionController : IScanSessionController
 
     private IReadOnlySet<string> BuildNormalizedSet(NonFollowBackData data)
     {
+        // Keep a small fallback list so the pipeline can run even when the real dataset is empty.
         var source = data.NonFollowBack.Count == 0
             ? FallbackNonFollowBack
             : data.NonFollowBack;
 
+        // Normalize whichever list is active so downstream matching uses the same normalization rules.
         var normalized = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in source)
         {
