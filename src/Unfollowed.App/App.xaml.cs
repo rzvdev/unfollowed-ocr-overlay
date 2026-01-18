@@ -4,7 +4,7 @@ using Unfollowed.App.ViewModels;
 
 namespace Unfollowed.App;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private ServiceProvider? _serviceProvider;
 

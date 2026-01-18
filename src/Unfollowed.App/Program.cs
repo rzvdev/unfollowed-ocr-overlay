@@ -14,6 +14,7 @@ using Unfollowed.Overlay;
 using Unfollowed.Preprocess;
 using System.Globalization;
 using System.Windows.Forms;
+using System.IO;
 
 namespace Unfollowed.App;
 
