@@ -867,7 +867,7 @@ public static class Program
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
             Stabilizer: stabilizerOptions,
-            Overlay: new OverlayOptions(Theme: settings.Theme)
+            Overlay: new OverlayOptions(Theme: settings.Theme),
             CaptureDump: captureDumpOptions
         );
     }
