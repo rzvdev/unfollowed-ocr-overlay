@@ -64,6 +64,7 @@ namespace Unfollowed.Overlay.Win32
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
             var options = _options ?? throw new InvalidOperationException("Overlay renderer not initialized.");
             var roi = _roi ?? throw new InvalidOperationException("Overlay renderer not initialized.");
+            var (strokeBrush, textBrush) = GetThemeBrushes(options.Theme);
 
             await ui.InvokeAsync(() =>
             {
@@ -91,7 +92,7 @@ namespace Unfollowed.Overlay.Win32
                         Width = (int)Math.Max(1, local.Width),
                         Height = (int)Math.Max(1, local.Height),
                         StrokeThickness = 2,
-                        Stroke = System.Windows.Media.Brushes.LimeGreen,
+                        Stroke = strokeBrush,
                         Fill = System.Windows.Media.Brushes.Transparent,
                         IsHitTestVisible = false
                     };
@@ -107,7 +108,7 @@ namespace Unfollowed.Overlay.Win32
                     {
                         Text = h.UsernameNormalized,
                         FontSize = 12,
-                        Foreground = System.Windows.Media.Brushes.LimeGreen,
+                        Foreground = textBrush,
                         Background = System.Windows.Media.Brushes.Black,
                         Opacity = 0.8,
                         Padding = new Thickness(4, 2, 4, 2),
@@ -192,6 +193,14 @@ namespace Unfollowed.Overlay.Win32
             var scaleY = 96.0 / dpiY;
             return (scaleX, scaleY);
         }
+
+        private static (System.Windows.Media.Brush Stroke, System.Windows.Media.Brush Text) GetThemeBrushes(OverlayTheme theme)
+            => theme switch
+            {
+                OverlayTheme.Amber => (System.Windows.Media.Brushes.Gold, System.Windows.Media.Brushes.Gold),
+                OverlayTheme.Cyan => (System.Windows.Media.Brushes.Cyan, System.Windows.Media.Brushes.Cyan),
+                _ => (System.Windows.Media.Brushes.LimeGreen, System.Windows.Media.Brushes.LimeGreen)
+            };
 
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT

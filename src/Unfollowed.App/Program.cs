@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Unfollowed.App.Composition;
 using Unfollowed.App.Scan;
+using Unfollowed.App.Settings;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Models;
@@ -11,6 +12,7 @@ using Unfollowed.Csv;
 using Unfollowed.Ocr;
 using Unfollowed.Overlay;
 using Unfollowed.Preprocess;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace Unfollowed.App;
@@ -66,6 +68,8 @@ public static class Program
                     return await ScanWithCsvAsync(provider, configuration, args);
                 case "convert-json":
                     return ConvertJsonToCsv(args);
+                case "settings":
+                    return await SettingsAsync(provider, configuration);
                 case "overlay-test":
                     return await OverlayTestAsync(provider, args);
                 case "overlay-calibrate":
@@ -136,7 +140,11 @@ public static class Program
         var roiSelector = provider.GetRequiredService<IRoiSelector>();
         var controller = provider.GetRequiredService<IScanSessionController>();
 
-        var roi = await roiSelector.SelectRegionAsync(CancellationToken.None);
+        var settingsStore = new AppSettingsStore();
+        var defaults = BuildDefaultSettings(configuration);
+        var settings = settingsStore.Load(defaults);
+
+        var roi = await SelectRoiAsync(roiSelector, settings);
 
         var data = new NonFollowBackData(
             Following: Array.Empty<string>(),
@@ -146,7 +154,9 @@ public static class Program
             FollowersStats: new CsvImportStats(0, 0, 0, 0)
         );
 
-        var options = BuildScanOptions(configuration);
+        var options = BuildScanOptions(configuration, settings);
+
+        settingsStore.Save(settings with { Roi = roi });
 
         await controller.StartAsync(data, roi, options, CancellationToken.None);
 
@@ -186,8 +196,14 @@ public static class Program
 
         var roiSelector = provider.GetRequiredService<IRoiSelector>();
         var controller = provider.GetRequiredService<IScanSessionController>();
-        var roi = await roiSelector.SelectRegionAsync(CancellationToken.None);
-        var options = BuildScanOptions(configuration);
+        var settingsStore = new AppSettingsStore();
+        var defaults = BuildDefaultSettings(configuration);
+        var settings = settingsStore.Load(defaults);
+
+        var roi = await SelectRoiAsync(roiSelector, settings);
+        var options = BuildScanOptions(configuration, settings);
+
+        settingsStore.Save(settings with { Roi = roi });
 
         await controller.StartAsync(data, roi, options, CancellationToken.None);
 
@@ -682,10 +698,126 @@ public static class Program
         => arg.Equals("--preprocess", StringComparison.OrdinalIgnoreCase)
             || arg.Equals("--gray", StringComparison.OrdinalIgnoreCase);
 
-    private static ScanSessionOptions BuildScanOptions(IConfiguration configuration)
+    private static AppSettings BuildDefaultSettings(IConfiguration configuration)
     {
-        var targetFps = configuration.GetValue("Scan:TargetFps", 4);
+        return new AppSettings(
+            TargetFps: configuration.GetValue("Scan:TargetFps", 4),
+            OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
+            OcrMinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
+            StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
+            Roi: null,
+            Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime)
+        );
+    }
 
+    private static async Task<RoiSelection> SelectRoiAsync(IRoiSelector roiSelector, AppSettings settings)
+    {
+        if (settings.Roi is null)
+        {
+            return await roiSelector.SelectRegionAsync(CancellationToken.None);
+        }
+
+        Console.WriteLine($"Saved ROI: X={settings.Roi.X}, Y={settings.Roi.Y}, W={settings.Roi.Width}, H={settings.Roi.Height}");
+        Console.Write("Use saved ROI? [Y/n]: ");
+        var response = Console.ReadLine();
+
+        if (string.IsNullOrWhiteSpace(response) || response.StartsWith("y", StringComparison.OrdinalIgnoreCase))
+        {
+            return settings.Roi;
+        }
+
+        return await roiSelector.SelectRegionAsync(CancellationToken.None);
+    }
+
+    private static async Task<int> SettingsAsync(ServiceProvider provider, IConfiguration configuration)
+    {
+        var store = new AppSettingsStore();
+        var defaults = BuildDefaultSettings(configuration);
+        var current = store.Load(defaults);
+
+        Console.WriteLine("Settings");
+        Console.WriteLine("1) Edit settings");
+        Console.WriteLine("2) Reset to defaults");
+        Console.WriteLine("3) Exit");
+        Console.Write("Select an option: ");
+        var choice = Console.ReadLine();
+
+        switch (choice)
+        {
+            case "2":
+                store.Reset();
+                Console.WriteLine("Settings reset to defaults.");
+                return 0;
+            case "1":
+                break;
+            default:
+                return 0;
+        }
+
+        var updated = await PromptForSettingsAsync(provider, current);
+        store.Save(updated);
+        Console.WriteLine("Settings saved.");
+        return 0;
+    }
+
+    private static async Task<AppSettings> PromptForSettingsAsync(ServiceProvider provider, AppSettings current)
+    {
+        var targetFps = PromptInt("Target FPS", current.TargetFps);
+        var ocrDiff = PromptFloat("OCR frame diff threshold", current.OcrFrameDiffThreshold);
+        var ocrMin = PromptFloat("OCR min token confidence", current.OcrMinTokenConfidence);
+        var stabilizer = PromptFloat("Stabilizer confidence threshold", current.StabilizerConfidenceThreshold);
+        var theme = PromptTheme(current.Theme);
+        var roi = current.Roi;
+
+        Console.Write("Update ROI? [y/N]: ");
+        var response = Console.ReadLine();
+        if (!string.IsNullOrWhiteSpace(response) && response.StartsWith("y", StringComparison.OrdinalIgnoreCase))
+        {
+            var roiSelector = provider.GetRequiredService<IRoiSelector>();
+            roi = await roiSelector.SelectRegionAsync(CancellationToken.None);
+        }
+
+        return current with
+        {
+            TargetFps = targetFps,
+            OcrFrameDiffThreshold = ocrDiff,
+            OcrMinTokenConfidence = ocrMin,
+            StabilizerConfidenceThreshold = stabilizer,
+            Theme = theme,
+            Roi = roi
+        };
+    }
+
+    private static int PromptInt(string label, int currentValue)
+    {
+        Console.Write($"{label} [{currentValue}]: ");
+        var input = Console.ReadLine();
+        return int.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : currentValue;
+    }
+
+    private static float PromptFloat(string label, float currentValue)
+    {
+        Console.Write($"{label} [{currentValue.ToString("0.###", CultureInfo.InvariantCulture)}]: ");
+        var input = Console.ReadLine();
+        return float.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : currentValue;
+    }
+
+    private static OverlayTheme PromptTheme(OverlayTheme currentTheme)
+    {
+        Console.WriteLine("Available themes: Lime, Amber, Cyan");
+        Console.Write($"Theme [{currentTheme}]: ");
+        var input = Console.ReadLine();
+        return Enum.TryParse<OverlayTheme>(input, true, out var theme)
+            ? theme
+            : currentTheme;
+    }
+
+    private static ScanSessionOptions BuildScanOptions(IConfiguration configuration, AppSettings settings)
+    {
         var defaultPreprocessOptions = new PreprocessOptions(
             Profile: configuration.GetValue("Preprocess:Profile", PreprocessProfile.Default),
             Contrast: configuration.GetValue("Preprocess:Contrast", 1.0f),
@@ -702,7 +834,7 @@ public static class Program
 
         var ocrOptions = new OcrOptions(
             LanguageTag: configuration.GetValue("Ocr:LanguageTag", "en"),
-            MinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
+            MinTokenConfidence: settings.OcrMinTokenConfidence,
             CharacterWhitelist: configuration.GetValue<string?>("Ocr:CharacterWhitelist", "abcdefghijklmnopqrstuvwxyz0123456789._@"),
             AssumedTokenConfidence: configuration.GetValue("Ocr:AssumedTokenConfidence", 0.85f)
         );
@@ -710,18 +842,18 @@ public static class Program
         var stabilizerOptions = new StabilizerOptions(
             WindowSizeM: configuration.GetValue("Stabilizer:WindowSizeM", 5),
             RequiredK: configuration.GetValue("Stabilizer:RequiredK", 3),
-            ConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
+            ConfidenceThreshold: settings.StabilizerConfidenceThreshold,
             AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false)
         );
 
         return new ScanSessionOptions(
-            TargetFps: targetFps,
-            OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
+            TargetFps: settings.TargetFps,
+            OcrFrameDiffThreshold: settings.OcrFrameDiffThreshold,
             Preprocess: preprocessOptions,
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
             Stabilizer: stabilizerOptions,
-            Overlay: new OverlayOptions()
+            Overlay: new OverlayOptions(Theme: settings.Theme)
         );
     }
 
@@ -776,6 +908,7 @@ public static class Program
         Console.WriteLine("  scan                                      Start scan loop (stubs)");
         Console.WriteLine("  scan-csv <following.csv> <followers.csv>  Start scan loop with CSV input");
         Console.WriteLine("  convert-json <following.json> <followers.json> <output-dir>  Export CSVs from Instagram JSON");
+        Console.WriteLine("  settings                                  Configure stored settings");
         Console.WriteLine("  overlay-test [x y w h]                    Show click-through overlay and test alignment");
         Console.WriteLine("  overlay-calibrate [x y w h]               Show ROI border + guides for calibration");
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
