@@ -20,12 +20,13 @@ public sealed class AppSettingsStoreTests
             OcrMinTokenConfidence: 0.33f,
             StabilizerConfidenceThreshold: 0.44f,
             Roi: new RoiSelection(10, 20, 300, 400, 1),
-            Theme: OverlayTheme.Amber);
+            Theme: OverlayTheme.Amber,
+            ThemeMode: ThemeMode.System);
 
         try
         {
             store.Save(settings);
-            var loaded = store.Load(new AppSettings(1, 0.01f, 0.0f, 0.1f, null, OverlayTheme.Lime));
+            var loaded = store.Load(new AppSettings(1, 0.01f, 0.0f, 0.1f, null, OverlayTheme.Lime, ThemeMode: ThemeMode.System));
 
             Assert.Equal(settings, loaded);
         }

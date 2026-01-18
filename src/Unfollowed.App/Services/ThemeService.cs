@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using Microsoft.Win32;
 using Unfollowed.App.Settings;
+using Application = System.Windows.Application;
 
 namespace Unfollowed.App.Services;
 

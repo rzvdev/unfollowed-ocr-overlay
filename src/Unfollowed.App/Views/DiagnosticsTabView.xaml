@@ -8,7 +8,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid>
                 <TextBlock Text="Diagnostics" FontSize="18" FontWeight="SemiBold" />
                 <Button Grid.Column="1"
                         Content="Clear logs"
