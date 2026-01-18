@@ -57,7 +57,7 @@ namespace Unfollowed.App.Composition
             //services.AddSingleton<IOverlayRenderer, NullOverlayRenderer>();
             //services.AddSingleton<IOverlayRenderer, Win32OverlayRenderer>();
             services.AddTransient<IOverlayRenderer, Win32OverlayRenderer>();
-            services.AddSingleton<IRoiSelector, StubRoiSelector>();
+            services.AddSingleton<IRoiSelector, Win32RoiSelector>();
 
             return services;
         }
