@@ -23,14 +23,14 @@ dotnet build -c Release
 
 Artifacts will be generated under:
 ```
-/src/UnfollowedOcrOverlay.UI/bin/
+/src/Unfollowed.App/bin/
 ```
 
 ---
 
 ## Build Using Visual Studio
 
-1. Open `UnfollowedOcrOverlay.sln`
+1. Open `Unfollowed.sln`
 2. Select configuration:
    - Debug or Release
 3. Select platform:
@@ -43,11 +43,11 @@ Artifacts will be generated under:
 
 ### From CLI
 ```bash
-dotnet run --project src/UnfollowedOcrOverlay.UI
+dotnet run --project src/Unfollowed.App
 ```
 
 ### From Visual Studio
-- Set `UnfollowedOcrOverlay.UI` as Startup Project
+- Set `Unfollowed.App` as Startup Project
 - Press **F5** or **Ctrl+F5**
 
 ---
@@ -55,9 +55,11 @@ dotnet run --project src/UnfollowedOcrOverlay.UI
 ## Build Configuration Notes
 
 - Target framework: `net8.0-windows`
-- WPF enabled
+- Windows Forms enabled
 - Self-contained build optional
-- Single-file publish supported
+- Single-file publish supported (see `scripts/publish.*`)
+  - Version is defined in `Directory.Build.props`
+  - Release notes live in `CHANGELOG.md`
 
 ---
 
@@ -66,12 +68,12 @@ dotnet run --project src/UnfollowedOcrOverlay.UI
 Example self-contained release build:
 
 ```bash
-dotnet publish src/UnfollowedOcrOverlay.UI   -c Release   -r win-x64   --self-contained true   /p:PublishSingleFile=true
+dotnet publish src/Unfollowed.App   -c Release   -r win-x64   --self-contained true   /p:PublishSingleFile=true
 ```
 
 Output:
 ```
-/bin/Release/net8.0-windows/win-x64/publish/
+/bin/Release/net8.0-windows10.0.22621.0/win-x64/publish/
 ```
 
 ---
