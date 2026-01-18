@@ -2,6 +2,33 @@ using System.Runtime.InteropServices;
 
 namespace Unfollowed.Capture;
 
+public interface IWin32ScreenApi
+{
+    IntPtr GetDC(IntPtr hWnd);
+    int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+    IntPtr CreateCompatibleDC(IntPtr hdc);
+    bool DeleteDC(IntPtr hdc);
+    IntPtr CreateDIBSection(
+        IntPtr hdc,
+        ref Win32BitmapInfo pbmi,
+        uint iUsage,
+        out IntPtr ppvBits,
+        IntPtr hSection,
+        uint dwOffset);
+    IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+    bool DeleteObject(IntPtr hObject);
+    bool BitBlt(
+        IntPtr hdcDest,
+        int nXDest,
+        int nYDest,
+        int nWidth,
+        int nHeight,
+        IntPtr hdcSrc,
+        int nXSrc,
+        int nYSrc,
+        uint dwRop);
+}
+
 public sealed class Win32FrameCapture : IFrameCapture
 {
     private const int BI_RGB = 0;
@@ -9,6 +36,7 @@ public sealed class Win32FrameCapture : IFrameCapture
     private const uint SRCCOPY = 0x00CC0020;
     private const uint CAPTUREBLT = 0x40000000;
 
+    private readonly IWin32ScreenApi _screenApi;
     private IntPtr _screenDc;
     private IntPtr _memoryDc;
     private IntPtr _dib;
@@ -19,6 +47,11 @@ public sealed class Win32FrameCapture : IFrameCapture
     private int _height;
     private byte[]? _buffer;
     private bool _initialized;
+
+    public Win32FrameCapture(IWin32ScreenApi? screenApi = null)
+    {
+        _screenApi = screenApi ?? new Win32ScreenApi();
+    }
 
     public Task InitializeAsync(RoiSelection roi, CancellationToken ct)
     {
@@ -33,25 +66,25 @@ public sealed class Win32FrameCapture : IFrameCapture
         _width = roi.Width;
         _height = roi.Height;
 
-        _screenDc = GetDC(IntPtr.Zero);
+        _screenDc = _screenApi.GetDC(IntPtr.Zero);
         if (_screenDc == IntPtr.Zero)
         {
             throw new InvalidOperationException("Failed to acquire screen DC.");
         }
 
-        _memoryDc = CreateCompatibleDC(_screenDc);
+        _memoryDc = _screenApi.CreateCompatibleDC(_screenDc);
         if (_memoryDc == IntPtr.Zero)
         {
-            ReleaseDC(IntPtr.Zero, _screenDc);
+            _screenApi.ReleaseDC(IntPtr.Zero, _screenDc);
             _screenDc = IntPtr.Zero;
             throw new InvalidOperationException("Failed to create memory DC.");
         }
 
-        var bitmapInfo = new BITMAPINFO
+        var bitmapInfo = new Win32BitmapInfo
         {
-            bmiHeader = new BITMAPINFOHEADER
+            bmiHeader = new Win32BitmapInfoHeader
             {
-                biSize = (uint)Marshal.SizeOf<BITMAPINFOHEADER>(),
+                biSize = (uint)Marshal.SizeOf<Win32BitmapInfoHeader>(),
                 biWidth = _width,
                 biHeight = -_height,
                 biPlanes = 1,
@@ -62,14 +95,14 @@ public sealed class Win32FrameCapture : IFrameCapture
             bmiColors = new uint[1]
         };
 
-        _dib = CreateDIBSection(_screenDc, ref bitmapInfo, DIB_RGB_COLORS, out _bits, IntPtr.Zero, 0);
+        _dib = _screenApi.CreateDIBSection(_screenDc, ref bitmapInfo, DIB_RGB_COLORS, out _bits, IntPtr.Zero, 0);
         if (_dib == IntPtr.Zero || _bits == IntPtr.Zero)
         {
             CleanupHandles();
             throw new InvalidOperationException("Failed to create DIB section.");
         }
 
-        _oldBitmap = SelectObject(_memoryDc, _dib);
+        _oldBitmap = _screenApi.SelectObject(_memoryDc, _dib);
         if (_oldBitmap == IntPtr.Zero)
         {
             CleanupHandles();
@@ -91,7 +124,7 @@ public sealed class Win32FrameCapture : IFrameCapture
             throw new InvalidOperationException("Capture has not been initialized.");
         }
 
-        var success = BitBlt(
+        var success = _screenApi.BitBlt(
             _memoryDc,
             0,
             0,
@@ -132,82 +165,78 @@ public sealed class Win32FrameCapture : IFrameCapture
     {
         if (_memoryDc != IntPtr.Zero && _oldBitmap != IntPtr.Zero)
         {
-            SelectObject(_memoryDc, _oldBitmap);
+            _screenApi.SelectObject(_memoryDc, _oldBitmap);
             _oldBitmap = IntPtr.Zero;
         }
 
         if (_dib != IntPtr.Zero)
         {
-            DeleteObject(_dib);
+            _screenApi.DeleteObject(_dib);
             _dib = IntPtr.Zero;
         }
 
         if (_memoryDc != IntPtr.Zero)
         {
-            DeleteDC(_memoryDc);
+            _screenApi.DeleteDC(_memoryDc);
             _memoryDc = IntPtr.Zero;
         }
 
         if (_screenDc != IntPtr.Zero)
         {
-            ReleaseDC(IntPtr.Zero, _screenDc);
+            _screenApi.ReleaseDC(IntPtr.Zero, _screenDc);
             _screenDc = IntPtr.Zero;
         }
     }
+}
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct BITMAPINFO
-    {
-        public BITMAPINFOHEADER bmiHeader;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
-        public uint[] bmiColors;
-    }
+[StructLayout(LayoutKind.Sequential)]
+public struct Win32BitmapInfo
+{
+    public Win32BitmapInfoHeader bmiHeader;
+    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+    public uint[] bmiColors;
+}
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct BITMAPINFOHEADER
-    {
-        public uint biSize;
-        public int biWidth;
-        public int biHeight;
-        public ushort biPlanes;
-        public ushort biBitCount;
-        public int biCompression;
-        public uint biSizeImage;
-        public int biXPelsPerMeter;
-        public int biYPelsPerMeter;
-        public uint biClrUsed;
-        public uint biClrImportant;
-    }
+[StructLayout(LayoutKind.Sequential)]
+public struct Win32BitmapInfoHeader
+{
+    public uint biSize;
+    public int biWidth;
+    public int biHeight;
+    public ushort biPlanes;
+    public ushort biBitCount;
+    public int biCompression;
+    public uint biSizeImage;
+    public int biXPelsPerMeter;
+    public int biYPelsPerMeter;
+    public uint biClrUsed;
+    public uint biClrImportant;
+}
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetDC(IntPtr hWnd);
+public sealed class Win32ScreenApi : IWin32ScreenApi
+{
+    public IntPtr GetDC(IntPtr hWnd) => NativeMethods.GetDC(hWnd);
 
-    [DllImport("user32.dll")]
-    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+    public int ReleaseDC(IntPtr hWnd, IntPtr hDC) => NativeMethods.ReleaseDC(hWnd, hDC);
 
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+    public IntPtr CreateCompatibleDC(IntPtr hdc) => NativeMethods.CreateCompatibleDC(hdc);
 
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteDC(IntPtr hdc);
+    public bool DeleteDC(IntPtr hdc) => NativeMethods.DeleteDC(hdc);
 
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr CreateDIBSection(
+    public IntPtr CreateDIBSection(
         IntPtr hdc,
-        ref BITMAPINFO pbmi,
+        ref Win32BitmapInfo pbmi,
         uint iUsage,
         out IntPtr ppvBits,
         IntPtr hSection,
-        uint dwOffset);
+        uint dwOffset)
+        => NativeMethods.CreateDIBSection(hdc, ref pbmi, iUsage, out ppvBits, hSection, dwOffset);
 
-    [DllImport("gdi32.dll")]
-    private static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+    public IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj) => NativeMethods.SelectObject(hdc, hgdiobj);
 
-    [DllImport("gdi32.dll")]
-    private static extern bool DeleteObject(IntPtr hObject);
+    public bool DeleteObject(IntPtr hObject) => NativeMethods.DeleteObject(hObject);
 
-    [DllImport("gdi32.dll")]
-    private static extern bool BitBlt(
+    public bool BitBlt(
         IntPtr hdcDest,
         int nXDest,
         int nYDest,
@@ -216,5 +245,48 @@ public sealed class Win32FrameCapture : IFrameCapture
         IntPtr hdcSrc,
         int nXSrc,
         int nYSrc,
-        uint dwRop);
+        uint dwRop)
+        => NativeMethods.BitBlt(hdcDest, nXDest, nYDest, nWidth, nHeight, hdcSrc, nXSrc, nYSrc, dwRop);
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateDIBSection(
+            IntPtr hdc,
+            ref Win32BitmapInfo pbmi,
+            uint iUsage,
+            out IntPtr ppvBits,
+            IntPtr hSection,
+            uint dwOffset);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr hObject);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool BitBlt(
+            IntPtr hdcDest,
+            int nXDest,
+            int nYDest,
+            int nWidth,
+            int nHeight,
+            IntPtr hdcSrc,
+            int nXSrc,
+            int nYSrc,
+            uint dwRop);
+    }
 }
