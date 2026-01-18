@@ -233,6 +233,7 @@ public static class Program
         // Overlay-focused options: make sure click-through is enabled.
         var options = new ScanSessionOptions(
             TargetFps: 1,
+            OcrFrameDiffThreshold: 0.0f,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
@@ -715,6 +716,7 @@ public static class Program
 
         return new ScanSessionOptions(
             TargetFps: targetFps,
+            OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
             Preprocess: preprocessOptions,
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
