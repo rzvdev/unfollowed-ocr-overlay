@@ -20,6 +20,8 @@
     <ProjectReference Include="..\..\Unfollowed.App\Unfollowed.App.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Core\Unfollowed.Core.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Csv\Unfollowed.Csv.csproj" />
+    <ProjectReference Include="..\..\Unfollowed.Capture\Unfollowed.Capture.csproj" />
+    <ProjectReference Include="..\..\Unfolloweed.Preprocess\Unfolloweed.Preprocess.csproj" />
   </ItemGroup>
 
   <ItemGroup>
