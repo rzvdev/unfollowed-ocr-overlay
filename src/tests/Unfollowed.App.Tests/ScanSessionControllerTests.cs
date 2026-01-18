@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Unfollowed.App.Scan;
+using Unfollowed.App.Services;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Models;
@@ -18,7 +19,7 @@ public sealed class ScanSessionControllerTests
     {
         var captureGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var controller = new ScanSessionController(
-            new FakeOverlayRenderer(),
+            new FakeOverlayService(),
             new BlockingFrameCapture(captureGate),
             new FakePreprocessor(),
             new FakeOcrProvider(),
@@ -48,7 +49,7 @@ public sealed class ScanSessionControllerTests
 
         var extractor = new CapturingExtractor();
         var controller = new ScanSessionController(
-            new FakeOverlayRenderer(() =>
+            new FakeOverlayService(() =>
             {
                 renderSignal.TrySetResult(true);
                 cts.Cancel();
@@ -148,18 +149,20 @@ public sealed class ScanSessionControllerTests
             => Task.FromResult(new OcrResult(Array.Empty<OcrToken>(), frame.Width, frame.Height));
     }
 
-    private sealed class FakeOverlayRenderer : IOverlayRenderer
+    private sealed class FakeOverlayService : IOverlayService
     {
         private readonly Action? _onRender;
 
-        public FakeOverlayRenderer(Action? onRender = null)
+        public FakeOverlayService(Action? onRender = null)
         {
             _onRender = onRender;
         }
 
-        public Task InitializeAsync(RoiSelection roi, OverlayOptions options, CancellationToken ct) => Task.CompletedTask;
+        public Task SetRoiAsync(RoiSelection roi, CancellationToken ct) => Task.CompletedTask;
 
-        public Task RenderAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct)
+        public Task InitializeAsync(OverlayOptions options, CancellationToken ct) => Task.CompletedTask;
+
+        public Task UpdateHighlightsAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct)
         {
             _onRender?.Invoke();
             return Task.CompletedTask;

@@ -1,5 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using Unfollowed.App.Scan;
+using Unfollowed.App.Services;
+using Unfollowed.Capture;
+using Unfollowed.Core.Extraction;
+using Unfollowed.Core.Stabilization;
+using Unfollowed.Ocr;
+using Unfollowed.Overlay;
+using Unfollowed.Preprocess;
 
 namespace Unfollowed.App.ViewModels;
 
@@ -7,12 +15,17 @@ public sealed class ScanningTabViewModel : ViewModelBase
 {
     private const string RoiMissingStatus = "ROI not selected.";
     private const string RoiReadyStatus = "ROI ready.";
+    private readonly DataTabViewModel _data;
+    private readonly IScanSessionController _scanController;
+    private readonly IOverlayService _overlayService;
+    private readonly IRoiSelector _roiSelector;
     private readonly RelayCommand _startCommand;
     private readonly RelayCommand _stopCommand;
     private bool _isRunning;
     private bool _canStart;
     private bool _hasCsvData;
     private bool _hasRoi;
+    private RoiSelection? _roi;
     private string _roiStatus = RoiMissingStatus;
     private double _fps = 15;
     private double _confidenceThreshold = 0.85;
@@ -20,8 +33,17 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private bool _showOcrBoxes = true;
     private bool _showOcrText = true;
 
-    public ScanningTabViewModel()
+    public ScanningTabViewModel(
+        DataTabViewModel data,
+        IScanSessionController scanController,
+        IOverlayService overlayService,
+        IRoiSelector roiSelector)
     {
+        _data = data;
+        _scanController = scanController;
+        _overlayService = overlayService;
+        _roiSelector = roiSelector;
+
         SelectRoiCommand = new RelayCommand(_ => SelectRoi());
         _startCommand = new RelayCommand(_ => Start(), _ => CanStart);
         _stopCommand = new RelayCommand(_ => Stop(), _ => IsRunning);
@@ -113,21 +135,90 @@ public sealed class ScanningTabViewModel : ViewModelBase
 
     private void SelectRoi()
     {
-        _hasRoi = true;
-        RoiStatus = RoiReadyStatus;
-        UpdateCanStart();
+        _ = SelectRoiAsync();
+    }
+
+    private async Task SelectRoiAsync()
+    {
+        try
+        {
+            var roi = await _roiSelector.SelectRegionAsync(CancellationToken.None);
+            _roi = roi;
+            _hasRoi = true;
+            RoiStatus = RoiReadyStatus;
+            await _overlayService.SetRoiAsync(roi, CancellationToken.None);
+        }
+        catch (OperationCanceledException)
+        {
+            RoiStatus = "ROI selection canceled.";
+        }
+        catch (Exception ex)
+        {
+            _hasRoi = false;
+            RoiStatus = $"ROI selection failed: {ex.Message}";
+        }
+        finally
+        {
+            UpdateCanStart();
+        }
     }
 
     private void Start()
     {
+        _ = StartAsync();
+    }
+
+    private async Task StartAsync()
+    {
+        if (_roi is null)
+        {
+            RoiStatus = RoiMissingStatus;
+            return;
+        }
+
+        var data = _data.ComputedData;
+        if (data is null)
+        {
+            RoiStatus = "Missing non-follow-back data.";
+            return;
+        }
+
         IsRunning = true;
         UpdateCanStart();
+
+        try
+        {
+            var options = BuildOptions();
+            await _scanController.StartAsync(data, _roi, options, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            IsRunning = false;
+            RoiStatus = $"Scan failed: {ex.Message}";
+            UpdateCanStart();
+        }
     }
 
     private void Stop()
     {
-        IsRunning = false;
-        UpdateCanStart();
+        _ = StopAsync();
+    }
+
+    private async Task StopAsync()
+    {
+        try
+        {
+            await _scanController.StopAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            RoiStatus = $"Stop failed: {ex.Message}";
+        }
+        finally
+        {
+            IsRunning = false;
+            UpdateCanStart();
+        }
     }
 
     private void UpdateCanStart()
@@ -136,6 +227,30 @@ public sealed class ScanningTabViewModel : ViewModelBase
         _startCommand.RaiseCanExecuteChanged();
         _stopCommand.RaiseCanExecuteChanged();
     }
+
+    private ScanSessionOptions BuildOptions()
+    {
+        var confidence = (float)Math.Clamp(_confidenceThreshold, 0.0, 1.0);
+        var fps = Math.Max(1, (int)Math.Round(_fps));
+
+        return new ScanSessionOptions(
+            TargetFps: fps,
+            OcrFrameDiffThreshold: 0.02f,
+            Preprocess: new PreprocessOptions(Profile: ResolveProfile()),
+            Ocr: new OcrOptions(MinTokenConfidence: confidence),
+            Extraction: new ExtractionOptions(MinTokenConfidence: confidence),
+            Stabilizer: new StabilizerOptions(ConfidenceThreshold: confidence),
+            Overlay: new OverlayOptions(ShowBadgeText: _showOcrBoxes, ShowOcrText: _showOcrText),
+            CaptureDump: new CaptureDumpOptions());
+    }
+
+    private PreprocessProfile ResolveProfile()
+        => SelectedProfile switch
+        {
+            "High accuracy" => PreprocessProfile.HighContrast,
+            "Fast scan" => PreprocessProfile.LightUi,
+            _ => PreprocessProfile.Default
+        };
 
     private sealed class RelayCommand : ICommand
     {

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Unfollowed.App.Scan;
+using Unfollowed.App.Services;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Normalization;
@@ -39,6 +40,7 @@ namespace Unfollowed.App.Composition
         {
             services.AddLogging();
             services.AddSingleton<IScanSessionController, ScanSessionController>();
+            services.AddSingleton<IOverlayService, Win32OverlayService>();
             return services;
         }
 
