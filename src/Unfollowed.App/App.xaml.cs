@@ -28,20 +28,24 @@ public partial class App : System.Windows.Application
         services.AddUnfollowedCsv();
         services.AddUnfollowedApp();
         services.AddUnfollowedRuntimeStubs(configuration);
+        services.AddSingleton<AppSettingsStore>();
+        services.AddSingleton(sp =>
+        {
+            var defaults = BuildDefaultSettings(configuration);
+            return sp.GetRequiredService<AppSettingsStore>().Load(defaults);
+        });
         services.AddSingleton<MainViewModel>();
         services.AddSingleton<DataTabViewModel>();
         services.AddSingleton<ScanningTabViewModel>();
         services.AddSingleton<DiagnosticsTabViewModel>();
-        services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<MainWindow>();
 
         _serviceProvider = services.BuildServiceProvider();
 
-        ApplyTheme(configuration, _serviceProvider);
+        ApplyTheme(_serviceProvider);
 
-        var window = new MainWindow
-        {
-            DataContext = _serviceProvider.GetRequiredService<MainViewModel>()
-        };
+        var window = _serviceProvider.GetRequiredService<MainWindow>();
+        MainWindow = window;
 
         window.Show();
     }
@@ -52,11 +56,9 @@ public partial class App : System.Windows.Application
         base.OnExit(e);
     }
 
-    private static void ApplyTheme(IConfiguration configuration, IServiceProvider serviceProvider)
+    private static void ApplyTheme(IServiceProvider serviceProvider)
     {
-        var settingsStore = new AppSettingsStore();
-        var defaults = BuildDefaultSettings(configuration);
-        var settings = settingsStore.Load(defaults);
+        var settings = serviceProvider.GetRequiredService<AppSettings>();
         var themeService = serviceProvider.GetRequiredService<IThemeService>();
         themeService.ApplyTheme(settings.ThemeMode);
     }
