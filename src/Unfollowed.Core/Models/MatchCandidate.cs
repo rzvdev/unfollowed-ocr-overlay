@@ -5,6 +5,7 @@
 /// </summary>
 public sealed record MatchCandidate(
     string UsernameNormalized,
+    string OcrText,
     float Confidence,
     RectF RoiRect
 );

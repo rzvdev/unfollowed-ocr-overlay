@@ -34,7 +34,8 @@ public sealed class ScanLifecycleTests
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
             Stabilizer: new StabilizerOptions(),
-            Overlay: new OverlayOptions()
+            Overlay: new OverlayOptions(),
+            CaptureDump: new CaptureDumpOptions()
         );
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));

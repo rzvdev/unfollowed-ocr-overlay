@@ -51,7 +51,7 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
                 if (!isInNonFollowBackSet(normalized))
                     continue;
 
-                var candidate = new MatchCandidate(normalized, token.Confidence, token.RoiRect);
+                var candidate = new MatchCandidate(normalized, token.Text, token.Confidence, token.RoiRect);
                 if (bestByUser.TryGetValue(normalized, out var existing))
                 {
                     // Keep the highest confidence hit per username for the frame.

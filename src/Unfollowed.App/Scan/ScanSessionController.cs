@@ -138,9 +138,12 @@ public sealed class ScanSessionController : IScanSessionController
 
             try
             {
+                var frameNumber = frameIndex;
                 var captureStart = Stopwatch.GetTimestamp();
                 var frame = await _capture.CaptureAsync(ct);
                 var captureElapsed = Stopwatch.GetElapsedTime(captureStart);
+
+                FrameDumpWriter.TryDumpFrame(frame, options.CaptureDump, frameNumber, _logger);
 
                 var preprocessStart = Stopwatch.GetTimestamp();
                 var processed = _preprocessor.Process(frame, options.Preprocess);
@@ -180,7 +183,7 @@ public sealed class ScanSessionController : IScanSessionController
                 {
                     _logger.LogInformation(
                         "Frame {Frame} timings (ms): capture={CaptureMs:0.0} preprocess={PreprocessMs:0.0} ocr={OcrMs:0.0} extract={ExtractMs:0.0} render={RenderMs:0.0} total={TotalMs:0.0}",
-                        frameIndex++,
+                        frameNumber,
                         captureElapsed.TotalMilliseconds,
                         preprocessElapsed.TotalMilliseconds,
                         ocrElapsed.TotalMilliseconds,
@@ -188,6 +191,8 @@ public sealed class ScanSessionController : IScanSessionController
                         renderElapsed.TotalMilliseconds,
                         totalElapsed.TotalMilliseconds);
                 }
+
+                frameIndex++;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {

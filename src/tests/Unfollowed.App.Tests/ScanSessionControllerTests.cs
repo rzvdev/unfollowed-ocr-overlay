@@ -102,7 +102,8 @@ public sealed class ScanSessionControllerTests
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
             Stabilizer: new StabilizerOptions(),
-            Overlay: new OverlayOptions());
+            Overlay: new OverlayOptions(),
+            CaptureDump: new CaptureDumpOptions());
 
     private sealed class BlockingFrameCapture : IFrameCapture
     {

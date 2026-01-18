@@ -12,5 +12,6 @@ public sealed record ScanSessionOptions(
     OcrOptions Ocr,
     ExtractionOptions Extraction,
     StabilizerOptions Stabilizer,
-    OverlayOptions Overlay
+    OverlayOptions Overlay,
+    CaptureDumpOptions CaptureDump
 );
