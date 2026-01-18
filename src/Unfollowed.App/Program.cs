@@ -98,6 +98,9 @@ public static class Program
         var followers = importer.ImportUsernames(args[2], new CsvImportOptions(), CancellationToken.None);
         var data = calc.Compute(following, followers);
 
+        PrintImportStats("Following", following);
+        PrintImportStats("Followers", followers);
+
         Console.WriteLine($"Following: {data.Following.Count}");
         Console.WriteLine($"Followers: {data.Followers.Count}");
         Console.WriteLine($"NonFollowBack: {data.NonFollowBack.Count}");
@@ -148,6 +151,9 @@ public static class Program
         var following = importer.ImportUsernames(args[1], new CsvImportOptions(), CancellationToken.None);
         var followers = importer.ImportUsernames(args[2], new CsvImportOptions(), CancellationToken.None);
         var data = calculator.Compute(following, followers);
+
+        PrintImportStats("Following", following);
+        PrintImportStats("Followers", followers);
 
         Console.WriteLine($"Following: {data.Following.Count}");
         Console.WriteLine($"Followers: {data.Followers.Count}");
@@ -526,7 +532,8 @@ public static class Program
         var ocrOptions = new OcrOptions(
             LanguageTag: configuration.GetValue("Ocr:LanguageTag", "en"),
             MinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
-            CharacterWhitelist: configuration.GetValue<string?>("Ocr:CharacterWhitelist", "abcdefghijklmnopqrstuvwxyz0123456789._@")
+            CharacterWhitelist: configuration.GetValue<string?>("Ocr:CharacterWhitelist", "abcdefghijklmnopqrstuvwxyz0123456789._@"),
+            AssumedTokenConfidence: configuration.GetValue("Ocr:AssumedTokenConfidence", 0.85f)
         );
 
         var stabilizerOptions = new StabilizerOptions(
@@ -601,5 +608,18 @@ public static class Program
         Console.WriteLine("  capture-test [x y w h] [count] [--preprocess]  Capture 1-3 ROI frames to BMP on disk");
         Console.WriteLine("  ocr-test [x y w h]                        Run capture/preprocess/OCR once and print tokens");
         Console.WriteLine();
+    }
+
+    private static void PrintImportStats(string label, CsvImportResult result)
+    {
+        Console.WriteLine($"{label} import:");
+        Console.WriteLine($"  rows: {result.Stats.TotalRows}");
+        Console.WriteLine($"  valid: {result.Stats.ValidUsernames}");
+        Console.WriteLine($"  invalid: {result.Stats.InvalidRows}");
+        Console.WriteLine($"  duplicates: {result.Stats.DuplicatesIgnored}");
+        if (!string.IsNullOrWhiteSpace(result.DetectedUsernameColumn))
+        {
+            Console.WriteLine($"  detected column: {result.DetectedUsernameColumn}");
+        }
     }
 }

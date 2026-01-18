@@ -35,6 +35,12 @@ public sealed class BasicFramePreprocessor : IFramePreprocessor
             gray[i] = (byte)adjusted;
         }
 
+        if (options.Sharpen > 0.001f)
+        {
+            var amount = Math.Clamp(options.Sharpen, 0.0f, 2.0f);
+            gray = ApplyUnsharpMask(gray, frame.Width, frame.Height, amount);
+        }
+
         return new ProcessedFrame(gray, frame.Width, frame.Height);
     }
 
@@ -62,5 +68,49 @@ public sealed class BasicFramePreprocessor : IFramePreprocessor
         }
 
         return (int)Math.Round(value);
+    }
+
+    private static byte[] ApplyUnsharpMask(byte[] source, int width, int height, float amount)
+    {
+        var blurred = new byte[source.Length];
+        var output = new byte[source.Length];
+
+        for (var y = 0; y < height; y++)
+        {
+            var rowOffset = y * width;
+            for (var x = 0; x < width; x++)
+            {
+                var sum = 0;
+                var count = 0;
+
+                for (var ky = -1; ky <= 1; ky++)
+                {
+                    var ny = y + ky;
+                    if (ny < 0 || ny >= height)
+                        continue;
+
+                    var nOffset = ny * width;
+                    for (var kx = -1; kx <= 1; kx++)
+                    {
+                        var nx = x + kx;
+                        if (nx < 0 || nx >= width)
+                            continue;
+
+                        sum += source[nOffset + nx];
+                        count++;
+                    }
+                }
+
+                blurred[rowOffset + x] = (byte)(sum / count);
+            }
+        }
+
+        for (var i = 0; i < source.Length; i++)
+        {
+            var sharpened = source[i] + (source[i] - blurred[i]) * amount;
+            output[i] = (byte)ClampToByte(sharpened);
+        }
+
+        return output;
     }
 }
