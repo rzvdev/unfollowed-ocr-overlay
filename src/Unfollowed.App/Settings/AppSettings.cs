@@ -9,5 +9,6 @@ public sealed record AppSettings(
     float OcrMinTokenConfidence,
     float StabilizerConfidenceThreshold,
     RoiSelection? Roi,
-    OverlayTheme Theme
+    OverlayTheme Theme,
+    ThemeMode ThemeMode
 );

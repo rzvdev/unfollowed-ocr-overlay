@@ -708,7 +708,8 @@ public static class Program
             OcrMinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
             StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
             Roi: null,
-            Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime)
+            Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime),
+            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System)
         );
     }
 
@@ -769,6 +770,7 @@ public static class Program
         var ocrMin = PromptFloat("OCR min token confidence", current.OcrMinTokenConfidence);
         var stabilizer = PromptFloat("Stabilizer confidence threshold", current.StabilizerConfidenceThreshold);
         var theme = PromptTheme(current.Theme);
+        var themeMode = PromptThemeMode(current.ThemeMode);
         var roi = current.Roi;
 
         Console.Write("Update ROI? [y/N]: ");
@@ -786,6 +788,7 @@ public static class Program
             OcrMinTokenConfidence = ocrMin,
             StabilizerConfidenceThreshold = stabilizer,
             Theme = theme,
+            ThemeMode = themeMode,
             Roi = roi
         };
     }
@@ -816,6 +819,16 @@ public static class Program
         return Enum.TryParse<OverlayTheme>(input, true, out var theme)
             ? theme
             : currentTheme;
+    }
+
+    private static ThemeMode PromptThemeMode(ThemeMode currentMode)
+    {
+        Console.WriteLine("Theme mode: Light, Dark, System");
+        Console.Write($"Theme mode [{currentMode}]: ");
+        var input = Console.ReadLine();
+        return Enum.TryParse<ThemeMode>(input, true, out var mode)
+            ? mode
+            : currentMode;
     }
 
     private static ScanSessionOptions BuildScanOptions(IConfiguration configuration, AppSettings settings)

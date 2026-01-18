@@ -3,7 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Margin="24">
         <Grid>
-            <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Text="Diagnostics" FontSize="18" FontWeight="SemiBold" />
                 <Button Grid.Column="1"
                         Content="Clear logs"
@@ -12,17 +17,17 @@
                         Margin="12,0,0,0" />
             </Grid>
             <UniformGrid Grid.Row="1" Columns="2" Margin="0,16,0,16">
-                <Border Background="#1F1F1F" CornerRadius="8" Padding="12" Margin="0,0,12,0">
+                <Border Style="{StaticResource SurfaceCard}" Padding="12" Margin="0,0,12,0">
                     <StackPanel>
-                        <TextBlock Text="Average frame time" Foreground="#B5B5B5" />
+                        <TextBlock Text="Average frame time" Style="{StaticResource SecondaryText}" />
                         <TextBlock Text="{Binding FrameTimeAverage, StringFormat={}{0:0.0} ms}"
                                    FontSize="16"
                                    FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
-                <Border Background="#1F1F1F" CornerRadius="8" Padding="12">
+                <Border Style="{StaticResource SurfaceCard}" Padding="12">
                     <StackPanel>
-                        <TextBlock Text="Average OCR latency" Foreground="#B5B5B5" />
+                        <TextBlock Text="Average OCR latency" Style="{StaticResource SecondaryText}" />
                         <TextBlock Text="{Binding OcrLatencyAverage, StringFormat={}{0:0.0} ms}"
                                    FontSize="16"
                                    FontWeight="SemiBold" />
@@ -30,27 +35,30 @@
                 </Border>
             </UniformGrid>
             <ListBox Grid.Row="2"
-                     ItemsSource="{Binding LogEntries}"
-                     BorderThickness="1"
-                     BorderBrush="#2B2B2B"
-                     Background="#121212"
-                     Padding="8">
+                     ItemsSource="{Binding LogEntries}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding Timestamp, StringFormat={}{0:HH:mm:ss}}"
-                                       Foreground="#B5B5B5" />
-                            <TextBlock Text="{Binding Level}"
+                                       Style="{StaticResource SecondaryText}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Level}"
                                        Margin="8,0,0,0"
-                                       Foreground="#B5B5B5" />
-                            <TextBlock Text="{Binding Category}"
+                                       Style="{StaticResource SecondaryText}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Category}"
                                        Margin="8,0,0,0"
-                                       Foreground="#B5B5B5" />
+                                       Style="{StaticResource SecondaryText}" />
                             <TextBlock Grid.Column="3"
                                        Text="{Binding Message}"
                                        Margin="8,0,0,0"
-                                       TextWrapping="Wrap"
-                                       Foreground="White" />
+                                       TextWrapping="Wrap" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
