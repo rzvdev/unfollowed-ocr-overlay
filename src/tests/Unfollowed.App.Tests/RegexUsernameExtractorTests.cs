@@ -76,6 +76,45 @@ public sealed class RegexUsernameExtractorTests
     }
 
     [Fact]
+    public void ExtractCandidates_FiltersStopWordsAfterNormalization()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("Following,", SampleRect, 0.91f),
+            ("@Follow", SampleRect, 0.91f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(),
+            _ => true,
+            normalizer.Normalize);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void ExtractCandidates_RespectsCustomStopWords()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("@CustomWord", SampleRect, 0.86f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(StopWords: new[] { "customword" }),
+            _ => true,
+            normalizer.Normalize);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
     public void ExtractCandidates_RespectsMinimumConfidence()
     {
         var extractor = new RegexUsernameExtractor();

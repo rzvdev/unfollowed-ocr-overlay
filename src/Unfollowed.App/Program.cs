@@ -698,9 +698,9 @@ public static class Program
         );
 
         var stabilizerOptions = new StabilizerOptions(
-            WindowSizeM: configuration.GetValue("Stabilizer:WindowSizeM", 3),
-            RequiredK: configuration.GetValue("Stabilizer:RequiredK", 2),
-            ConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.60f),
+            WindowSizeM: configuration.GetValue("Stabilizer:WindowSizeM", 5),
+            RequiredK: configuration.GetValue("Stabilizer:RequiredK", 3),
+            ConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
             AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false)
         );
 
