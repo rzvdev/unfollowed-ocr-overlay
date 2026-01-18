@@ -91,7 +91,7 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
         if (normalized.Length > maxLength)
             return false;
 
-        if (normalized.StartsWith('.', StringComparison.Ordinal) || normalized.EndsWith('.', StringComparison.Ordinal))
+        if (normalized.StartsWith('.') || normalized.EndsWith('.'))
             return false;
 
         for (var i = 0; i < normalized.Length; i++)
