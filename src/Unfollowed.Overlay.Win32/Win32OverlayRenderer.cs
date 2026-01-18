@@ -8,6 +8,10 @@ using Unfollowed.Overlay.Win32.Infrastructure;
 
 namespace Unfollowed.Overlay.Win32
 {
+    /// <summary>
+    /// Renders highlight overlays on a dedicated WPF UI thread hosted by
+    /// <see cref="WpfUiThreadHost"/>. All window operations are dispatched through that UI thread.
+    /// </summary>
     public sealed class Win32OverlayRenderer : IOverlayRenderer
     {
         private const uint MONITOR_DEFAULTTONEAREST = 2;
@@ -23,6 +27,11 @@ namespace Unfollowed.Overlay.Win32
             _ui = new WpfUiThreadHost();
         }
 
+        /// <summary>
+        /// Initializes the overlay window on the WPF UI thread and computes DIP scaling for the
+        /// monitor that contains the ROI. ROI coordinates are in screen pixels and are scaled to
+        /// DIPs when positioning the overlay window.
+        /// </summary>
         public async Task InitializeAsync(RoiSelection roi, OverlayOptions options, CancellationToken ct)
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
@@ -45,6 +54,11 @@ namespace Unfollowed.Overlay.Win32
             });
         }
 
+        /// <summary>
+        /// Renders highlight rectangles on the UI thread by mapping each highlight
+        /// <see cref="Highlight.ScreenRect"/> from screen pixels into overlay-local DIPs using the
+        /// ROI origin and computed DIP scale.
+        /// </summary>
         public async Task RenderAsync(IReadOnlyList<Highlight> highlights, CancellationToken ct)
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
@@ -107,6 +121,9 @@ namespace Unfollowed.Overlay.Win32
             });
         }
 
+        /// <summary>
+        /// Clears overlay visuals on the UI thread.
+        /// </summary>
         public async Task ClearAsync(CancellationToken ct)
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
@@ -118,6 +135,10 @@ namespace Unfollowed.Overlay.Win32
             });
         }
 
+        /// <summary>
+        /// Disposes the overlay window and UI thread host. Must be called from any thread; work is
+        /// marshaled onto the WPF UI thread.
+        /// </summary>
         public async ValueTask DisposeAsync()
         {
             // If Dispose is called multiple times, make it idempotent.
