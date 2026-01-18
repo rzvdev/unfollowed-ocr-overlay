@@ -2,10 +2,16 @@
 
 namespace Unfollowed.Core.Stabilization;
 
+/// <summary>
+/// Stabilizes highlights by requiring a username to appear in K of the last M frames.
+/// </summary>
 public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
 {
     private readonly Queue<Dictionary<string, MatchCandidate>> _frames = new();
 
+    /// <summary>
+    /// Converts recent OCR candidates into stable highlights based on a sliding window.
+    /// </summary>
     public IReadOnlyList<Highlight> Stabilize(
         IReadOnlyList<MatchCandidate> candidates,
         RoiToScreenTransform transform,
@@ -21,6 +27,7 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
             throw new ArgumentOutOfRangeException(nameof(options), "RequiredK must be greater than zero.");
         }
 
+        // Reduce each frame to the best candidate per username.
         var frameCandidates = candidates
             .Where(candidate => candidate.Confidence >= options.ConfidenceThreshold)
             .GroupBy(candidate => candidate.UsernameNormalized, StringComparer.OrdinalIgnoreCase)
@@ -33,6 +40,7 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
             _frames.Dequeue();
         }
 
+        // Collect all usernames seen in the active window.
         var usernames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var frame in _frames)
         {
@@ -78,6 +86,9 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
         _frames.Clear();
     }
 
+    /// <summary>
+    /// Finds the most recent candidate for a username within the active window.
+    /// </summary>
     private MatchCandidate? FindMostRecentCandidate(string username)
     {
         foreach (var frame in _frames.Reverse())
