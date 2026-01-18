@@ -6,8 +6,14 @@ using Unfollowed.Core.Models;
 
 namespace Unfollowed.Core.Extraction;
 
+/// <summary>
+/// Extracts username candidates by applying a configurable regex to OCR tokens.
+/// </summary>
 public sealed class RegexUsernameExtractor : IUsernameExtractor
 {
+    /// <summary>
+    /// Extracts candidate usernames from OCR tokens, applying filtering and normalization.
+    /// </summary>
     public IReadOnlyList<MatchCandidate> ExtractCandidates(IReadOnlyCollection<(string Text, RectF RoiRect, float Confidence)> ocrTokens, ExtractionOptions options, Func<string, bool> isInNonFollowBackSet, Func<string, string> normalize)
     {
         if (ocrTokens.Count == 0)
@@ -19,6 +25,7 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
 
         foreach (var token in ocrTokens)
         {
+            // Skip tokens that are too weak or empty to avoid noisy candidates.
             if (token.Confidence < options.MinTokenConfidence)
                 continue;
 
@@ -30,6 +37,7 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
                 if (!match.Success)
                     continue;
 
+                // Normalize before stop word filtering and additional validation.
                 var normalized = normalize(match.Value);
                 if (string.IsNullOrWhiteSpace(normalized))
                     continue;
@@ -46,6 +54,7 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
                 var candidate = new MatchCandidate(normalized, token.Confidence, token.RoiRect);
                 if (bestByUser.TryGetValue(normalized, out var existing))
                 {
+                    // Keep the highest confidence hit per username for the frame.
                     if (candidate.Confidence > existing.Confidence)
                         bestByUser[normalized] = candidate;
                     continue;
@@ -83,6 +92,9 @@ public sealed class RegexUsernameExtractor : IUsernameExtractor
         return set;
     }
 
+    /// <summary>
+    /// Validates the normalized username using Instagram-style rules.
+    /// </summary>
     private static bool IsInstagramHandle(string normalized, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(normalized))

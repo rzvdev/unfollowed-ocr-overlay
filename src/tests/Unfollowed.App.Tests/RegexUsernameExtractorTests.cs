@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Models;
 using Unfollowed.Core.Normalization;
@@ -17,11 +18,15 @@ public sealed class RegexUsernameExtractorTests
         {
             ("hello @User.Name,", SampleRect, 0.93f),
         };
+        var nonFollowBackUsers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "user.name",
+        };
 
         var candidates = extractor.ExtractCandidates(
             tokens,
             new ExtractionOptions(),
-            _ => true,
+            nonFollowBackUsers.Contains,
             normalizer.Normalize);
 
         var candidate = Assert.Single(candidates);
@@ -83,6 +88,44 @@ public sealed class RegexUsernameExtractorTests
         var candidates = extractor.ExtractCandidates(
             tokens,
             new ExtractionOptions(MinTokenConfidence: 0.8f),
+            _ => true,
+            normalizer.Normalize);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void ExtractCandidates_FiltersHandlesWithConsecutiveDots()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("@user..name", SampleRect, 0.9f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(),
+            _ => true,
+            normalizer.Normalize);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void ExtractCandidates_RespectsMaxUsernameLength()
+    {
+        var extractor = new RegexUsernameExtractor();
+        var normalizer = new UsernameNormalizer(new UsernameNormalizationOptions());
+        var tokens = new[]
+        {
+            ("@thisiswaytoolongforourlimits", SampleRect, 0.9f),
+        };
+
+        var candidates = extractor.ExtractCandidates(
+            tokens,
+            new ExtractionOptions(MaxUsernameLength: 10),
             _ => true,
             normalizer.Normalize);
 
