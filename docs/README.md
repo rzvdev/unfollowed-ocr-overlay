@@ -92,15 +92,25 @@ The user remains fully in control at all times.
 
 ```
 /src
-  /UnfollowedOcrOverlay.Core
-  /UnfollowedOcrOverlay.Application
-  /UnfollowedOcrOverlay.Infrastructure
-  /UnfollowedOcrOverlay.UI
+  /Unfollowed.App
+  /Unfollowed.Capture
+  /Unfollowed.Core
+  /Unfollowed.Csv
+  /Unfollowed.Ocr
+  /Unfollowed.Overlay
+  /Unfollowed.Overlay.Win32
+  /Unfolloweed.Preprocess
+  /tests
 /tests
 /docs
 ```
 
 ---
+
+## Configuration
+
+Runtime configuration is defined in `src/Unfollowed.App/appsettings.json`. See the configuration reference in
+`docs/CONFIGURATION.md` for details on each option.
 
 ## Non-Goals (Explicitly Out of Scope)
 
