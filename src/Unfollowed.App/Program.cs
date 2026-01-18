@@ -402,6 +402,7 @@ public static class Program
 
         var capture = provider.GetRequiredService<IFrameCapture>();
         var preprocessor = provider.GetRequiredService<IFramePreprocessor>();
+        var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("CaptureTest");
         await capture.InitializeAsync(roi, CancellationToken.None);
 
         try
@@ -418,6 +419,7 @@ public static class Program
                 var path = Path.Combine(Environment.CurrentDirectory + "/captures/", filename);
                 SaveBgra32AsBmp(path, frame);
                 Console.WriteLine($"Saved frame {i + 1}/{count} to {path}");
+                ValidateCaptureBmp(path, roi, frame, logger);
 
                 if (dumpPreprocessed)
                 {
@@ -441,6 +443,7 @@ public static class Program
     {
         const int fileHeaderSize = 14;
         const int infoHeaderSize = 40;
+        const int pelsPerMeter = 3780; // 96 DPI
         var imageSize = frame.Width * frame.Height * 4;
 
         if (frame.Bgra32.Length < imageSize)
@@ -467,8 +470,8 @@ public static class Program
         writer.Write((ushort)32);
         writer.Write(0);
         writer.Write(imageSize);
-        writer.Write(0);
-        writer.Write(0);
+        writer.Write(pelsPerMeter);
+        writer.Write(pelsPerMeter);
         writer.Write(0);
         writer.Write(0);
 
@@ -480,6 +483,7 @@ public static class Program
         const int fileHeaderSize = 14;
         const int infoHeaderSize = 40;
         const int paletteSize = 256 * 4;
+        const int pelsPerMeter = 3780; // 96 DPI
         var stride = (frame.Width + 3) & ~3;
         var imageSize = stride * frame.Height;
         var offset = fileHeaderSize + infoHeaderSize + paletteSize;
@@ -506,8 +510,8 @@ public static class Program
         writer.Write((ushort)8);
         writer.Write(0);
         writer.Write(imageSize);
-        writer.Write(0);
-        writer.Write(0);
+        writer.Write(pelsPerMeter);
+        writer.Write(pelsPerMeter);
         writer.Write(256);
         writer.Write(0);
 
@@ -533,6 +537,144 @@ public static class Program
             }
         }
     }
+
+    private static void ValidateCaptureBmp(string path, RoiSelection roi, CaptureFrame frame, ILogger logger)
+    {
+        var info = ReadBmpInfo(path);
+        var dpiX = PixelsPerMeterToDpi(info.XPelsPerMeter);
+        var dpiY = PixelsPerMeterToDpi(info.YPelsPerMeter);
+        logger.LogInformation(
+            "BMP DPI: {XPelsPerMeter} ppm ({DpiX:0.##} dpi), {YPelsPerMeter} ppm ({DpiY:0.##} dpi)",
+            info.XPelsPerMeter,
+            dpiX,
+            info.YPelsPerMeter,
+            dpiY);
+
+        if (info.Width != roi.Width || info.Height != roi.Height)
+        {
+            logger.LogWarning(
+                "BMP dimensions mismatch. Expected ROI {ExpectedWidth}x{ExpectedHeight}, got {ActualWidth}x{ActualHeight}.",
+                roi.Width,
+                roi.Height,
+                info.Width,
+                info.Height);
+        }
+
+        if (!info.IsTopDown)
+        {
+            logger.LogWarning("BMP orientation mismatch. Expected top-down bitmap (negative height).");
+        }
+
+        var bmpData = ReadBmpPixelData(path, info);
+        if (bmpData.Length != frame.Bgra32.Length)
+        {
+            logger.LogWarning(
+                "BMP pixel data length mismatch. Expected {ExpectedLength} bytes, got {ActualLength} bytes.",
+                frame.Bgra32.Length,
+                bmpData.Length);
+            return;
+        }
+
+        var mismatchCount = 0;
+        for (var i = 0; i < bmpData.Length; i++)
+        {
+            if (bmpData[i] != frame.Bgra32[i])
+            {
+                mismatchCount++;
+            }
+        }
+
+        if (mismatchCount > 0)
+        {
+            logger.LogWarning(
+                "BMP pixel data mismatch detected: {MismatchCount} bytes differ out of {TotalBytes}.",
+                mismatchCount,
+                bmpData.Length);
+        }
+    }
+
+    private static BmpInfo ReadBmpInfo(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var reader = new BinaryReader(stream);
+
+        var signature = reader.ReadUInt16();
+        if (signature != 0x4D42)
+        {
+            throw new InvalidOperationException("Invalid BMP signature.");
+        }
+
+        reader.ReadInt32(); // file size
+        reader.ReadUInt16(); // reserved1
+        reader.ReadUInt16(); // reserved2
+        var dataOffset = reader.ReadInt32();
+        var infoHeaderSize = reader.ReadInt32();
+        if (infoHeaderSize < 40)
+        {
+            throw new InvalidOperationException("Unsupported BMP header size.");
+        }
+
+        var width = reader.ReadInt32();
+        var height = reader.ReadInt32();
+        reader.ReadUInt16(); // planes
+        var bitCount = reader.ReadUInt16();
+        reader.ReadInt32(); // compression
+        var imageSize = reader.ReadInt32();
+        var xPelsPerMeter = reader.ReadInt32();
+        var yPelsPerMeter = reader.ReadInt32();
+        reader.ReadInt32(); // clr used
+        reader.ReadInt32(); // clr important
+
+        var isTopDown = height < 0;
+        var actualHeight = Math.Abs(height);
+
+        return new BmpInfo(
+            width,
+            actualHeight,
+            bitCount,
+            imageSize,
+            xPelsPerMeter,
+            yPelsPerMeter,
+            dataOffset,
+            isTopDown);
+    }
+
+    private static byte[] ReadBmpPixelData(string path, BmpInfo info)
+    {
+        var bytesToRead = info.ImageSize;
+        if (bytesToRead <= 0)
+        {
+            bytesToRead = info.BitCount switch
+            {
+                32 => info.Width * info.Height * 4,
+                8 => ((info.Width + 3) & ~3) * info.Height,
+                _ => throw new InvalidOperationException("Unsupported BMP format for pixel read.")
+            };
+        }
+
+        using var stream = File.OpenRead(path);
+        stream.Seek(info.DataOffset, SeekOrigin.Begin);
+        var buffer = new byte[bytesToRead];
+        var read = stream.Read(buffer, 0, buffer.Length);
+        if (read != bytesToRead)
+        {
+            Array.Resize(ref buffer, read);
+        }
+        return buffer;
+    }
+
+    private static float PixelsPerMeterToDpi(int pelsPerMeter)
+        => pelsPerMeter <= 0 ? 0 : pelsPerMeter / 39.3701f;
+
+    private sealed record BmpInfo(
+        int Width,
+        int Height,
+        int BitCount,
+        int ImageSize,
+        int XPelsPerMeter,
+        int YPelsPerMeter,
+        int DataOffset,
+        bool IsTopDown);
 
     private static bool IsPreprocessFlag(string arg)
         => arg.Equals("--preprocess", StringComparison.OrdinalIgnoreCase)
