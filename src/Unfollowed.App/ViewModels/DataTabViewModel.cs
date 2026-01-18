@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Microsoft.Win32;
 using Unfollowed.Csv;
+using Unfollowed.Core.Models;
 
 namespace Unfollowed.App.ViewModels;
 
@@ -14,6 +15,7 @@ public sealed class DataTabViewModel : ViewModelBase
     private int _followersCount;
     private int _nonFollowBackCount;
     private bool _hasCsvData;
+    private NonFollowBackData? _computedData;
     private string _statusMessage = "Select your following and followers CSV exports to compute the results.";
     private bool _hasError;
     private string _errorMessage = string.Empty;
@@ -53,6 +55,12 @@ public sealed class DataTabViewModel : ViewModelBase
     {
         get => _hasCsvData;
         private set => SetProperty(ref _hasCsvData, value);
+    }
+
+    public NonFollowBackData? ComputedData
+    {
+        get => _computedData;
+        private set => SetProperty(ref _computedData, value);
     }
 
     public string StatusMessage
@@ -121,6 +129,7 @@ public sealed class DataTabViewModel : ViewModelBase
             FollowersCount = data.Followers.Count;
             NonFollowBackCount = data.NonFollowBack.Count;
             HasCsvData = true;
+            ComputedData = data;
             StatusMessage = "Computed non-follow-back results.";
             ClearError();
         }
@@ -130,6 +139,7 @@ public sealed class DataTabViewModel : ViewModelBase
             FollowersCount = 0;
             NonFollowBackCount = 0;
             HasCsvData = false;
+            ComputedData = null;
             HasError = true;
             ErrorMessage = ex.Message;
             StatusMessage = "Failed to compute results.";

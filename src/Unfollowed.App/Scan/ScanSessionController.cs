@@ -1,12 +1,12 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Unfollowed.App.Services;
 using Unfollowed.Capture;
 using Unfollowed.Core.Models;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Normalization;
 using Unfollowed.Core.Stabilization;
 using Unfollowed.Ocr;
-using Unfollowed.Overlay;
 using Unfollowed.Preprocess;
 
 namespace Unfollowed.App.Scan;
@@ -26,7 +26,7 @@ public sealed class ScanSessionController : IScanSessionController
         "testaccount"
     };
 
-    private readonly IOverlayRenderer _overlay;
+    private readonly IOverlayService _overlay;
     private readonly IFrameCapture _capture;
     private readonly IFramePreprocessor _preprocessor;
     private readonly IOcrProvider _ocr;
@@ -38,7 +38,7 @@ public sealed class ScanSessionController : IScanSessionController
     private Task? _sessionTask;
 
     public ScanSessionController(
-        IOverlayRenderer overlay,
+        IOverlayService overlay,
         IFrameCapture capture,
         IFramePreprocessor preprocessor,
         IOcrProvider ocr,
@@ -75,7 +75,8 @@ public sealed class ScanSessionController : IScanSessionController
         _stabilizer.Reset();
 
         await _capture.InitializeAsync(roi, ct);
-        await _overlay.InitializeAsync(roi, options.Overlay, ct);
+        await _overlay.SetRoiAsync(roi, ct);
+        await _overlay.InitializeAsync(options.Overlay, ct);
 
         var normalizedSet = BuildNormalizedSet(data);
         _sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -200,7 +201,7 @@ public sealed class ScanSessionController : IScanSessionController
                     lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
 
                     var renderStart = Stopwatch.GetTimestamp();
-                    await _overlay.RenderAsync(lastHighlights, ct);
+                    await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
                     var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
 
                     var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
