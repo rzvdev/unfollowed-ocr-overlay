@@ -82,4 +82,26 @@ public sealed class KOfMHighlightStabilizerTests
             transform,
             options));
     }
+
+    [Fact]
+    public void Reset_ClearsTrackedFrames()
+    {
+        var stabilizer = new KOfMHighlightStabilizer();
+        var options = new StabilizerOptions(WindowSizeM: 2, RequiredK: 2, ConfidenceThreshold: 0.5f);
+        var transform = new RoiToScreenTransform(0, 0, 100, 100, 100, 100);
+
+        stabilizer.Stabilize(
+            new[] { new MatchCandidate("dana", 0.8f, new RectF(10, 10, 10, 10)) },
+            transform,
+            options);
+
+        stabilizer.Reset();
+
+        var highlights = stabilizer.Stabilize(
+            new[] { new MatchCandidate("dana", 0.8f, new RectF(10, 10, 10, 10)) },
+            transform,
+            options);
+
+        Assert.Empty(highlights);
+    }
 }
