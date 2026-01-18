@@ -6,6 +6,7 @@ public sealed class Win32RoiSelector : IRoiSelector
 {
     private const int VK_LBUTTON = 0x01;
     private const int VK_ESCAPE = 0x1B;
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
 
     public async Task<RoiSelection> SelectRegionAsync(CancellationToken ct)
     {
@@ -20,6 +21,8 @@ public sealed class Win32RoiSelector : IRoiSelector
         try
         {
             var start = await WaitForMouseDownAsync(ct);
+            var startMonitor = MonitorFromPoint(start, MONITOR_DEFAULTTONEAREST);
+            var monitorId = GetMonitorIndex(startMonitor);
             var previousRect = default(RECT);
             var hasPrevious = false;
 
@@ -31,7 +34,7 @@ public sealed class Win32RoiSelector : IRoiSelector
                     throw new TaskCanceledException("ROI selection cancelled.");
                 }
 
-                if (!TryGetCursorPos(out var current))
+                if (!TryGetPhysicalCursorPos(out var current))
                 {
                     await Task.Delay(16, ct);
                     continue;
@@ -59,7 +62,7 @@ public sealed class Win32RoiSelector : IRoiSelector
                 DrawFocusRect(screenDc, ref previousRect);
             }
 
-            if (!TryGetCursorPos(out var end))
+            if (!TryGetPhysicalCursorPos(out var end))
             {
                 end = start;
             }
@@ -68,7 +71,7 @@ public sealed class Win32RoiSelector : IRoiSelector
             var width = Math.Max(1, finalRect.Right - finalRect.Left);
             var height = Math.Max(1, finalRect.Bottom - finalRect.Top);
 
-            return new RoiSelection(finalRect.Left, finalRect.Top, width, height);
+            return new RoiSelection(finalRect.Left, finalRect.Top, width, height, monitorId);
         }
         finally
         {
@@ -86,7 +89,7 @@ public sealed class Win32RoiSelector : IRoiSelector
                 throw new TaskCanceledException("ROI selection cancelled.");
             }
 
-            if (IsButtonDown(VK_LBUTTON) && TryGetCursorPos(out var start))
+            if (IsButtonDown(VK_LBUTTON) && TryGetPhysicalCursorPos(out var start))
             {
                 return start;
             }
@@ -98,8 +101,15 @@ public sealed class Win32RoiSelector : IRoiSelector
     private static bool IsButtonDown(int key)
         => (GetAsyncKeyState(key) & 0x8000) != 0;
 
-    private static bool TryGetCursorPos(out POINT point)
-        => GetCursorPos(out point);
+    private static bool TryGetPhysicalCursorPos(out POINT point)
+    {
+        if (GetPhysicalCursorPos(out point))
+        {
+            return true;
+        }
+
+        return GetCursorPos(out point);
+    }
 
     private static RECT NormalizeRect(POINT start, POINT end)
     {
@@ -143,8 +153,43 @@ public sealed class Win32RoiSelector : IRoiSelector
     private static extern bool GetCursorPos(out POINT lpPoint);
 
     [DllImport("user32.dll")]
+    private static extern bool GetPhysicalCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
 
     [DllImport("user32.dll")]
     private static extern bool DrawFocusRect(IntPtr hdc, ref RECT lprc);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(
+        IntPtr hdc,
+        IntPtr lprcClip,
+        MonitorEnumProc lpfnEnum,
+        IntPtr dwData);
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, IntPtr lprcMonitor, IntPtr dwData);
+
+    private static int GetMonitorIndex(IntPtr monitor)
+    {
+        var index = 0;
+        var found = -1;
+
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (hMonitor, _, _, _) =>
+        {
+            if (hMonitor == monitor)
+            {
+                found = index;
+                return false;
+            }
+
+            index++;
+            return true;
+        }, IntPtr.Zero);
+
+        return found < 0 ? 0 : found;
+    }
 }

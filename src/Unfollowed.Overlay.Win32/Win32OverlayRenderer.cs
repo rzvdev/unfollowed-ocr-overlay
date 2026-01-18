@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Shapes;
 using Unfollowed.Capture;
@@ -9,9 +10,13 @@ namespace Unfollowed.Overlay.Win32
 {
     public sealed class Win32OverlayRenderer : IOverlayRenderer
     {
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
         private WpfUiThreadHost? _ui;
         private OverlayWindow? _window;
         private OverlayOptions? _options;
+        private RoiSelection? _roi;
+        private double _dipScaleX = 1.0;
+        private double _dipScaleY = 1.0;
 
         public Win32OverlayRenderer()
         {
@@ -22,15 +27,17 @@ namespace Unfollowed.Overlay.Win32
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
             _options = options;
+            _roi = roi;
+            (_dipScaleX, _dipScaleY) = GetDipScale(roi);
 
             await ui.InvokeAsync(() =>
             {
                 _window = new OverlayWindow(options.ClickThrough)
                 {
-                    Left = roi.X,
-                    Top = roi.Y,
-                    Width = roi.Width,
-                    Height = roi.Height,
+                    Left = roi.X * _dipScaleX,
+                    Top = roi.Y * _dipScaleY,
+                    Width = roi.Width * _dipScaleX,
+                    Height = roi.Height * _dipScaleY,
                     Topmost = options.AlwaysOnTop
                 };
 
@@ -42,6 +49,7 @@ namespace Unfollowed.Overlay.Win32
         {
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
             var options = _options ?? throw new InvalidOperationException("Overlay renderer not initialized.");
+            var roi = _roi ?? throw new InvalidOperationException("Overlay renderer not initialized.");
 
             await ui.InvokeAsync(() =>
             {
@@ -52,11 +60,16 @@ namespace Unfollowed.Overlay.Win32
 
                 foreach (var h in highlights)
                 {
+                    var localX = (h.ScreenRect.X - roi.X) * _dipScaleX;
+                    var localY = (h.ScreenRect.Y - roi.Y) * _dipScaleY;
+                    var localW = h.ScreenRect.W * _dipScaleX;
+                    var localH = h.ScreenRect.H * _dipScaleY;
+
                     var local = new Rect(
-                        h.ScreenRect.X - (float)_window.Left,
-                        h.ScreenRect.Y - (float)_window.Top,
-                        h.ScreenRect.W,
-                        h.ScreenRect.H
+                        localX,
+                        localY,
+                        localW,
+                        localH
                     );
 
                     var rect = new Rectangle
@@ -139,5 +152,46 @@ namespace Unfollowed.Overlay.Win32
                 _ui = null;
             }
         }
+
+        private static (double scaleX, double scaleY) GetDipScale(RoiSelection roi)
+        {
+            var point = new POINT { X = roi.X, Y = roi.Y };
+            var monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+            if (monitor == IntPtr.Zero)
+            {
+                return (1.0, 1.0);
+            }
+
+            if (GetDpiForMonitor(monitor, MonitorDpiType.MDT_EFFECTIVE_DPI, out var dpiX, out var dpiY) != 0)
+            {
+                return (1.0, 1.0);
+            }
+
+            var scaleX = 96.0 / dpiX;
+            var scaleY = 96.0 / dpiY;
+            return (scaleX, scaleY);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        private enum MonitorDpiType
+        {
+            MDT_EFFECTIVE_DPI = 0
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+        [DllImport("shcore.dll")]
+        private static extern int GetDpiForMonitor(
+            IntPtr hmonitor,
+            MonitorDpiType dpiType,
+            out uint dpiX,
+            out uint dpiY);
     }
 }

@@ -46,7 +46,7 @@ public sealed class WindowsOcrProvider : IOcrProvider
                 continue;
             }
 
-            var confidence = 1.0f;
+            var confidence = EstimateConfidence(text, options.AssumedTokenConfidence);
             if (confidence < options.MinTokenConfidence)
             {
                 continue;
@@ -58,6 +58,22 @@ public sealed class WindowsOcrProvider : IOcrProvider
         }
 
         return new OcrResult(tokens, frame.Width, frame.Height);
+    }
+
+    private static float EstimateConfidence(string text, float assumedConfidence)
+    {
+        var confidence = Math.Clamp(assumedConfidence, 0.0f, 1.0f);
+
+        if (text.Length <= 1)
+        {
+            confidence *= 0.4f;
+        }
+        else if (text.Length <= 2)
+        {
+            confidence *= 0.6f;
+        }
+
+        return confidence;
     }
 
     private static OcrEngine? CreateEngine(OcrOptions options)
