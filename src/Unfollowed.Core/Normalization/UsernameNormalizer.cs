@@ -2,6 +2,9 @@
 
 namespace Unfollowed.Core.Normalization
 {
+    /// <summary>
+    /// Normalizes raw OCR text into a username-style token.
+    /// </summary>
     public sealed class UsernameNormalizer : IUsernameNormalizer
     {
         private readonly UsernameNormalizationOptions _options;
@@ -11,6 +14,9 @@ namespace Unfollowed.Core.Normalization
             _options = options;
         }
 
+        /// <summary>
+        /// Applies trimming, casing, and character filtering rules.
+        /// </summary>
         public string Normalize(string raw)
         {
             if (string.IsNullOrWhiteSpace(raw))
