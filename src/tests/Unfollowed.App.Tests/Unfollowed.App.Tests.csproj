@@ -23,7 +23,6 @@
     <ProjectReference Include="..\..\Unfollowed.Capture\Unfollowed.Capture.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Csv\Unfollowed.Csv.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Ocr\Unfollowed.Ocr.csproj" />
-    <ProjectReference Include="..\..\Unfollowed.Preprocess\Unfollowed.Preprocess.csproj" />
     <ProjectReference Include="..\..\Unfollowed.Overlay\Unfollowed.Overlay.csproj" />
   </ItemGroup>
 
