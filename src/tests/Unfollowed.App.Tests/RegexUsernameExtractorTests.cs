@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unfollowed.Core.Extraction;
 using Unfollowed.Core.Models;
 using Unfollowed.Core.Normalization;
@@ -17,11 +18,15 @@ public sealed class RegexUsernameExtractorTests
         {
             ("hello @User.Name,", SampleRect, 0.93f),
         };
+        var nonFollowBackUsers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "user.name",
+        };
 
         var candidates = extractor.ExtractCandidates(
             tokens,
             new ExtractionOptions(),
-            _ => true,
+            nonFollowBackUsers.Contains,
             normalizer.Normalize);
 
         var candidate = Assert.Single(candidates);
