@@ -221,6 +221,7 @@ public sealed class DataTabViewModel : ViewModelBase
             WriteUsernameCsv(nonFollowBackCsvPath, data.NonFollowBack, CancellationToken.None);
 
             StatusMessage = $"Converted JSON to CSV in {_outputDirectory} and created {System.IO.Path.GetFileName(nonFollowBackCsvPath)}.";
+            StatusMessage = $"Converted JSON to CSV in {_outputDirectory}.";
             ClearError();
 
             var result = System.Windows.MessageBox.Show(
@@ -233,7 +234,7 @@ public sealed class DataTabViewModel : ViewModelBase
             {
                 _followingPath = followingCsvPath;
                 _followersPath = followersCsvPath;
-                StatusMessage = "Loaded generated CSV files.";
+                _followingPath = System.IO.Path.Combine(_outputDirectory, "following.csv");
                 TryComputeResults();
             }
         }
