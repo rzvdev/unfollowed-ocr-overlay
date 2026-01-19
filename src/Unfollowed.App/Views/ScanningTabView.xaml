@@ -72,6 +72,65 @@
                                   IsChecked="{Binding ShowOcrText}" />
                     </StackPanel>
                 </StackPanel>
+                <StackPanel Margin="0,24,0,0">
+                    <TextBlock Text="Advanced / Testing" FontWeight="SemiBold" />
+                    <StackPanel Margin="0,12,0,0">
+                        <TextBlock Text="OCR frame diff threshold" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Slider Minimum="0"
+                                    Maximum="1"
+                                    SmallChange="0.01"
+                                    LargeChange="0.05"
+                                    Value="{Binding OcrFrameDiffThreshold}"
+                                    Width="240" />
+                            <TextBlock Text="{Binding OcrFrameDiffThreshold}"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Style="{StaticResource SecondaryText}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Margin="0,16,0,0">
+                        <TextBlock Text="Overlay behavior" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <CheckBox Content="Always on top"
+                                      IsChecked="{Binding AlwaysOnTop}"
+                                      Margin="0,0,16,0" />
+                            <CheckBox Content="Click through"
+                                      IsChecked="{Binding ClickThrough}"
+                                      Margin="0,0,16,0" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Theme"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <ComboBox ItemsSource="{Binding OverlayThemes}"
+                                          SelectedItem="{Binding Theme}"
+                                          Width="120" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Margin="0,16,0,0">
+                        <TextBlock Text="Capture frame dumps" FontWeight="SemiBold" />
+                        <CheckBox Content="Enable frame dumps"
+                                  IsChecked="{Binding CaptureDumpEnabled}"
+                                  Margin="0,8,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="Dump every N frames"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <TextBox Text="{Binding CaptureDumpEveryNFrames, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="80"
+                                     IsEnabled="{Binding CaptureDumpEnabled}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="Output directory"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <TextBox Text="{Binding CaptureDumpOutputDirectory, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="240"
+                                     IsEnabled="{Binding CaptureDumpEnabled}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
         </Border>
     </Grid>
