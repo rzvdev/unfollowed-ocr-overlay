@@ -130,6 +130,29 @@
                                      IsEnabled="{Binding CaptureDumpEnabled}" />
                         </StackPanel>
                     </StackPanel>
+                    <StackPanel Margin="0,20,0,0">
+                        <TextBlock Text="Test tools" FontWeight="SemiBold" />
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Content="Test capture"
+                                    Command="{Binding TestCaptureCommand}"
+                                    Width="120"
+                                    Margin="0,0,12,0" />
+                            <Button Content="Test OCR"
+                                    Command="{Binding TestOcrCommand}"
+                                    Width="120"
+                                    Margin="0,0,12,0" />
+                            <Button Content="Test overlay"
+                                    Command="{Binding TestOverlayCommand}"
+                                    Width="120" />
+                        </StackPanel>
+                        <TextBox Text="{Binding TestToolsStatus}"
+                                 Margin="0,12,0,0"
+                                 Height="120"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
         </Border>

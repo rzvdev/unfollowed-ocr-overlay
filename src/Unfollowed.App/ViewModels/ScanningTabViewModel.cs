@@ -4,6 +4,7 @@ using Unfollowed.App.Scan;
 using Unfollowed.App.Services;
 using Unfollowed.Capture;
 using Unfollowed.Core.Extraction;
+using Unfollowed.Core.Models;
 using Unfollowed.Core.Stabilization;
 using Unfollowed.Ocr;
 using Unfollowed.Overlay;
@@ -19,14 +20,21 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private readonly IScanSessionController _scanController;
     private readonly IOverlayService _overlayService;
     private readonly IRoiSelector _roiSelector;
+    private readonly IFrameCapture _capture;
+    private readonly IFramePreprocessor _preprocessor;
+    private readonly IOcrProvider _ocr;
     private readonly RelayCommand _startCommand;
     private readonly RelayCommand _stopCommand;
+    private readonly RelayCommand _testCaptureCommand;
+    private readonly RelayCommand _testOcrCommand;
+    private readonly RelayCommand _testOverlayCommand;
     private bool _isRunning;
     private bool _canStart;
     private bool _hasCsvData;
     private bool _hasRoi;
     private RoiSelection? _roi;
     private string _roiStatus = RoiMissingStatus;
+    private string _testToolsStatus = "Test tools idle.";
     private double _fps = 15;
     private double _confidenceThreshold = 0.85;
     private string? _selectedProfile;
@@ -39,23 +47,36 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private bool _alwaysOnTop = true;
     private bool _clickThrough = true;
     private OverlayTheme _overlayTheme = OverlayTheme.Lime;
+    private bool _isTestRunning;
 
     public ScanningTabViewModel(
         DataTabViewModel data,
         IScanSessionController scanController,
         IOverlayService overlayService,
-        IRoiSelector roiSelector)
+        IRoiSelector roiSelector,
+        IFrameCapture capture,
+        IFramePreprocessor preprocessor,
+        IOcrProvider ocr)
     {
         _data = data;
         _scanController = scanController;
         _overlayService = overlayService;
         _roiSelector = roiSelector;
+        _capture = capture;
+        _preprocessor = preprocessor;
+        _ocr = ocr;
 
         SelectRoiCommand = new RelayCommand(_ => SelectRoi());
         _startCommand = new RelayCommand(_ => Start(), _ => CanStart);
         _stopCommand = new RelayCommand(_ => Stop(), _ => IsRunning);
+        _testCaptureCommand = new RelayCommand(_ => TestCapture(), _ => CanRunTestTools());
+        _testOcrCommand = new RelayCommand(_ => TestOcr(), _ => CanRunTestTools());
+        _testOverlayCommand = new RelayCommand(_ => TestOverlay(), _ => CanRunTestTools());
         StartCommand = _startCommand;
         StopCommand = _stopCommand;
+        TestCaptureCommand = _testCaptureCommand;
+        TestOcrCommand = _testOcrCommand;
+        TestOverlayCommand = _testOverlayCommand;
         Profiles = new ObservableCollection<string>
         {
             "Default",
@@ -73,6 +94,12 @@ public sealed class ScanningTabViewModel : ViewModelBase
 
     public ICommand StopCommand { get; }
 
+    public ICommand TestCaptureCommand { get; }
+
+    public ICommand TestOcrCommand { get; }
+
+    public ICommand TestOverlayCommand { get; }
+
     public bool IsRunning
     {
         get => _isRunning;
@@ -81,6 +108,18 @@ public sealed class ScanningTabViewModel : ViewModelBase
             if (SetProperty(ref _isRunning, value))
             {
                 UpdateCanStart();
+            }
+        }
+    }
+
+    public bool IsTestRunning
+    {
+        get => _isTestRunning;
+        private set
+        {
+            if (SetProperty(ref _isTestRunning, value))
+            {
+                RaiseTestToolsCanExecute();
             }
         }
     }
@@ -95,6 +134,12 @@ public sealed class ScanningTabViewModel : ViewModelBase
     {
         get => _roiStatus;
         private set => SetProperty(ref _roiStatus, value);
+    }
+
+    public string TestToolsStatus
+    {
+        get => _testToolsStatus;
+        private set => SetProperty(ref _testToolsStatus, value);
     }
 
     public double Fps
@@ -302,6 +347,160 @@ public sealed class ScanningTabViewModel : ViewModelBase
         CanStart = !_isRunning && _hasRoi && _hasCsvData;
         _startCommand.RaiseCanExecuteChanged();
         _stopCommand.RaiseCanExecuteChanged();
+        RaiseTestToolsCanExecute();
+    }
+
+    private bool CanRunTestTools() => !IsRunning && !IsTestRunning;
+
+    private void RaiseTestToolsCanExecute()
+    {
+        _testCaptureCommand.RaiseCanExecuteChanged();
+        _testOcrCommand.RaiseCanExecuteChanged();
+        _testOverlayCommand.RaiseCanExecuteChanged();
+    }
+
+    private void AppendTestStatus(string message)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        var line = $"{timestamp} {message}";
+        TestToolsStatus = string.IsNullOrWhiteSpace(TestToolsStatus) || TestToolsStatus == "Test tools idle."
+            ? line
+            : $"{TestToolsStatus}{Environment.NewLine}{line}";
+    }
+
+    private void TestCapture()
+    {
+        _ = TestCaptureAsync();
+    }
+
+    private async Task TestCaptureAsync()
+    {
+        if (_roi is null)
+        {
+            AppendTestStatus("Capture test skipped: ROI not selected.");
+            return;
+        }
+
+        IsTestRunning = true;
+        AppendTestStatus("Capture test started.");
+
+        try
+        {
+            await _capture.InitializeAsync(_roi, CancellationToken.None);
+            var frame = await _capture.CaptureAsync(CancellationToken.None);
+            AppendTestStatus($"Captured frame {frame.Width}x{frame.Height}.");
+        }
+        catch (Exception ex)
+        {
+            AppendTestStatus($"Capture test failed: {ex.Message}");
+        }
+        finally
+        {
+            await _capture.DisposeAsync();
+            IsTestRunning = false;
+        }
+    }
+
+    private void TestOcr()
+    {
+        _ = TestOcrAsync();
+    }
+
+    private async Task TestOcrAsync()
+    {
+        if (_roi is null)
+        {
+            AppendTestStatus("OCR test skipped: ROI not selected.");
+            return;
+        }
+
+        IsTestRunning = true;
+        AppendTestStatus("OCR test started.");
+
+        try
+        {
+            var options = BuildOptions();
+            await _capture.InitializeAsync(_roi, CancellationToken.None);
+            var frame = await _capture.CaptureAsync(CancellationToken.None);
+            var processed = _preprocessor.Process(frame, options.Preprocess);
+            var result = await _ocr.RecognizeAsync(processed, options.Ocr, CancellationToken.None);
+
+            AppendTestStatus($"OCR tokens: {result.Tokens.Count}.");
+
+            var sampleTokens = result.Tokens
+                .OrderByDescending(token => token.Confidence)
+                .Take(5)
+                .Select(token => $"{token.Text} ({token.Confidence:0.00})")
+                .ToArray();
+
+            if (sampleTokens.Length > 0)
+            {
+                AppendTestStatus($"Top tokens: {string.Join(", ", sampleTokens)}");
+            }
+            else
+            {
+                AppendTestStatus("No tokens returned from OCR.");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendTestStatus($"OCR test failed: {ex.Message}");
+        }
+        finally
+        {
+            await _capture.DisposeAsync();
+            IsTestRunning = false;
+        }
+    }
+
+    private void TestOverlay()
+    {
+        _ = TestOverlayAsync();
+    }
+
+    private async Task TestOverlayAsync()
+    {
+        if (_roi is null)
+        {
+            AppendTestStatus("Overlay test skipped: ROI not selected.");
+            return;
+        }
+
+        IsTestRunning = true;
+        AppendTestStatus("Overlay test started.");
+
+        try
+        {
+            var options = BuildOptions();
+            await _overlayService.SetRoiAsync(_roi, CancellationToken.None);
+            await _overlayService.InitializeAsync(options.Overlay, CancellationToken.None);
+
+            var highlight = new Highlight(
+                "test_overlay",
+                "Test overlay",
+                1f,
+                new RectF(
+                    _roi.X + _roi.Width * 0.1f,
+                    _roi.Y + _roi.Height * 0.1f,
+                    Math.Max(1f, _roi.Width * 0.3f),
+                    Math.Max(1f, _roi.Height * 0.1f)),
+                true);
+
+            await _overlayService.UpdateHighlightsAsync(new[] { highlight }, CancellationToken.None);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            await _overlayService.ClearAsync(CancellationToken.None);
+
+            AppendTestStatus("Overlay test completed.");
+        }
+        catch (Exception ex)
+        {
+            AppendTestStatus($"Overlay test failed: {ex.Message}");
+        }
+        finally
+        {
+            await _overlayService.DisposeAsync();
+            IsTestRunning = false;
+        }
     }
 
     private ScanSessionOptions BuildOptions()
