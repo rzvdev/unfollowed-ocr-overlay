@@ -65,7 +65,7 @@ public sealed class ScanSessionController : IScanSessionController
     /// <param name="roi">The region of interest for capture and overlay initialization.</param>
     /// <param name="options">Options that control preprocess, OCR, and overlay behavior.</param>
     /// <param name="ct">Cancellation token used for initialization and linked to the scan loop.</param>
-    public async Task StartAsync(NonFollowBackData data, RoiSelection roi, ScanSessionOptions options, CancellationToken ct)
+    public async Task<Task> StartAsync(NonFollowBackData data, RoiSelection roi, ScanSessionOptions options, CancellationToken ct)
     {
         if (_sessionTask is { IsCompleted: false })
         {
@@ -81,6 +81,7 @@ public sealed class ScanSessionController : IScanSessionController
         var normalizedSet = BuildNormalizedSet(data);
         _sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         _sessionTask = RunLoopAsync(roi, options, normalizedSet, _sessionCts.Token);
+        return _sessionTask;
     }
 
     /// <summary>

@@ -159,7 +159,7 @@ public static class Program
 
         settingsStore.Save(settings with { Roi = roi });
 
-        await controller.StartAsync(data, roi, options, CancellationToken.None);
+        _ = await controller.StartAsync(data, roi, options, CancellationToken.None);
 
         Console.WriteLine("Scanning started (stubs). Press ENTER to stop...");
         Console.ReadLine();
@@ -206,7 +206,7 @@ public static class Program
 
         settingsStore.Save(settings with { Roi = roi });
 
-        await controller.StartAsync(data, roi, options, CancellationToken.None);
+        _ = await controller.StartAsync(data, roi, options, CancellationToken.None);
 
         Console.WriteLine("Scanning started. Press ENTER to stop...");
         Console.ReadLine();
@@ -263,7 +263,7 @@ public static class Program
             CaptureDump: new CaptureDumpOptions()
         );
 
-        await controller.StartAsync(data, roi, options, CancellationToken.None);
+        _ = await controller.StartAsync(data, roi, options, CancellationToken.None);
 
         Console.WriteLine("Overlay test started.");
         Console.WriteLine($"ROI: X={roi.X}, Y={roi.Y}, W={roi.Width}, H={roi.Height}");

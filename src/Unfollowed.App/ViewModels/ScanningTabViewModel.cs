@@ -189,7 +189,27 @@ public sealed class ScanningTabViewModel : ViewModelBase
         try
         {
             var options = BuildOptions();
-            await _scanController.StartAsync(data, _roi, options, CancellationToken.None);
+            var sessionTask = await _scanController.StartAsync(data, _roi, options, CancellationToken.None);
+            _ = sessionTask.ContinueWith(
+                task =>
+                {
+                    if (task.IsCanceled)
+                    {
+                        RoiStatus = "Scan canceled.";
+                    }
+                    else if (task.Exception is not null)
+                    {
+                        RoiStatus = $"Scan failed: {task.Exception.GetBaseException().Message}";
+                    }
+                    else
+                    {
+                        RoiStatus = "Scan stopped.";
+                    }
+
+                    IsRunning = false;
+                    UpdateCanStart();
+                },
+                TaskScheduler.FromCurrentSynchronizationContext());
         }
         catch (Exception ex)
         {
