@@ -112,6 +112,13 @@ The user remains fully in control at all times.
 Runtime configuration is defined in `src/Unfollowed.App/appsettings.json`. See the configuration reference in
 `docs/CONFIGURATION.md` for details on each option.
 
+## CLI Commands
+
+The CLI supports both headless data commands and Windows-only scan/overlay workflows:
+
+- **Headless (cross-platform):** `compute`, `convert-json`
+- **Windows-only (Win32 capture/overlay required):** `scan`, `scan-csv`, `overlay-test`, `overlay-calibrate`, `capture-test`, `ocr-test`
+
 ## Non-Goals (Explicitly Out of Scope)
 
 - Automated unfollowing  
