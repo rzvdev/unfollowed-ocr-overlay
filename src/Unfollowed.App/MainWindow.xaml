@@ -15,7 +15,9 @@
                 </ScrollViewer>
             </TabItem>
             <TabItem Header="Scanning">
-                <views:ScanningTabView DataContext="{Binding Scanning}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <views:ScanningTabView DataContext="{Binding Scanning}" />
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="Diagnostics">
                 <views:DiagnosticsTabView DataContext="{Binding Diagnostics}" />

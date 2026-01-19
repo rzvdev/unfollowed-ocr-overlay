@@ -1,41 +1,24 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWPF>true</UseWPF>
-    <UseWindowsForms>true</UseWindowsForms>
-    <StartupObject>Unfollowed.App.App</StartupObject>
-    <ApplicationIcon>lungurazvan.dev-logo-2-resized.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="lungurazvan.dev-logo-2-resized.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Unfollowed.App.CliCore\Unfollowed.App.CliCore.csproj" />
     <ProjectReference Include="..\Unfollowed.Capture\Unfollowed.Capture.csproj" />
     <ProjectReference Include="..\Unfollowed.Core\Unfollowed.Core.csproj" />
     <ProjectReference Include="..\Unfollowed.Csv\Unfollowed.Csv.csproj" />
     <ProjectReference Include="..\Unfollowed.Ocr\Unfollowed.Ocr.csproj" />
-    <ProjectReference Include="..\Unfollowed.Overlay.Win32\Unfollowed.Overlay.Win32.csproj" />
     <ProjectReference Include="..\Unfollowed.Overlay\Unfollowed.Overlay.csproj" />
     <ProjectReference Include="..\Unfolloweed.Preprocess\Unfollowed.Preprocess.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

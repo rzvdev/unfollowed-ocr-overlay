@@ -139,7 +139,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
     public string TestToolsStatus
     {
         get => _testToolsStatus;
-        private set => SetProperty(ref _testToolsStatus, value);
+        set => SetProperty(ref _testToolsStatus, value);
     }
 
     public double Fps
