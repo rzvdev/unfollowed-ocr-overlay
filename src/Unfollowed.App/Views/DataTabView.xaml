@@ -76,7 +76,6 @@
                         <Grid>
                             <ListView ItemsSource="{Binding Following}" />
                             <TextBlock Text="No following usernames loaded."
-                                       Style="{StaticResource SecondaryText}"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
                                 <TextBlock.Style>
@@ -96,7 +95,6 @@
                         <Grid>
                             <ListView ItemsSource="{Binding Followers}" />
                             <TextBlock Text="No follower usernames loaded."
-                                       Style="{StaticResource SecondaryText}"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
                                 <TextBlock.Style>
@@ -116,7 +114,6 @@
                         <Grid>
                             <ListView ItemsSource="{Binding NonFollowBack}" />
                             <TextBlock Text="No non-follow-back usernames loaded."
-                                       Style="{StaticResource SecondaryText}"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
                                 <TextBlock.Style>
