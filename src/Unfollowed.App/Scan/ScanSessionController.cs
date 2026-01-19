@@ -37,6 +37,8 @@ public sealed class ScanSessionController : IScanSessionController
     private CancellationTokenSource? _sessionCts;
     private Task? _sessionTask;
 
+    public Task? SessionTask => _sessionTask;
+
     public ScanSessionController(
         IOverlayService overlay,
         IFrameCapture capture,
