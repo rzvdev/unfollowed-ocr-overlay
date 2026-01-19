@@ -52,6 +52,62 @@ dotnet run --project src/Unfollowed.App
 
 ---
 
+## CLI Project (Cross-Platform)
+
+The cross-platform CLI lives in `src/Unfollowed.Cli`. It provides headless data commands only.
+
+### Build
+```bash
+dotnet build -c Release src/Unfollowed.Cli
+```
+
+### Run
+```bash
+dotnet run --project src/Unfollowed.Cli -- <command> [args]
+```
+
+### Supported Commands (Cross-Platform)
+- **compute** — Compute NonFollowBack counts from CSV exports.
+- **convert-json** — Export Instagram JSON to CSV.
+
+Examples:
+```bash
+dotnet run --project src/Unfollowed.Cli -- compute data/following.csv data/followers.csv
+dotnet run --project src/Unfollowed.Cli -- convert-json data/following.json data/followers.json data/out
+```
+
+---
+
+## Windows CLI Commands (Win32 Capture/Overlay Required)
+
+The Windows UI app (`src/Unfollowed.App`) exposes additional CLI-only commands for scan/overlay workflows.
+These require the Windows runtime (Win32 capture/overlay).
+
+### Run (Windows)
+```bash
+dotnet run --project src/Unfollowed.App -- <command> [args]
+```
+
+### Supported Commands (Windows-only)
+- **scan** — Start scan loop (requires `--roi`).
+- **scan-csv** — Start scan loop using CSV inputs.
+- **overlay-test** — Show click-through overlay for alignment.
+- **overlay-calibrate** — Show ROI guides for calibration.
+- **capture-test** — Capture 1–3 ROI frames to BMP on disk.
+- **ocr-test** — Run capture/preprocess/OCR once and print tokens.
+- **settings** — View or update stored settings (CLI-only).
+
+Examples:
+```bash
+dotnet run --project src/Unfollowed.App -- scan --roi 200,150,800,600
+dotnet run --project src/Unfollowed.App -- scan-csv data/following.csv data/followers.csv --roi 200,150,800,600
+dotnet run --project src/Unfollowed.App -- overlay-test 200 150 800 600
+dotnet run --project src/Unfollowed.App -- capture-test 200 150 800 600 3 --preprocess
+dotnet run --project src/Unfollowed.App -- settings --reset
+```
+
+---
+
 ## Build Configuration Notes
 
 - Target framework: `net8.0-windows`
