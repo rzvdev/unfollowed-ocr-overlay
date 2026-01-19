@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Unfollowed.App.CliCore;
+using Unfollowed.App.CliCore.Composition;
 using Unfollowed.App.Composition;
 
 namespace Unfollowed.App;
@@ -11,6 +12,7 @@ public static class Program
     public static async Task<int> Main(string[] args)
     {
         var services = new ServiceCollection();
+        var requiresWindows = RequiresWindowsRuntime(args);
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -31,10 +33,29 @@ public static class Program
         services
             .AddUnfollowedCore()
             .AddUnfollowedCsv()
-            .AddUnfollowedApp()
-            .AddUnfollowedRuntimeStubs(configuration);
+            .AddUnfollowedApp();
+
+        if (requiresWindows)
+        {
+            services.AddUnfollowedRuntimeStubs(configuration);
+        }
+        else
+        {
+            services.AddUnfollowedCliRuntime();
+        }
 
         var provider = services.BuildServiceProvider();
         return await CliCommandHandlers.RunAsync(provider, configuration, args);
+    }
+
+    private static bool RequiresWindowsRuntime(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            return false;
+        }
+
+        var command = args[0].ToLowerInvariant();
+        return command is "scan" or "scan-csv" or "overlay-test" or "overlay-calibrate" or "capture-test" or "ocr-test";
     }
 }
