@@ -32,6 +32,13 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private string? _selectedProfile;
     private bool _showBadgeText = true;
     private bool _showOcrText = true;
+    private double _ocrFrameDiffThreshold = 0.02;
+    private bool _captureDumpEnabled;
+    private int _captureDumpEveryNFrames;
+    private string _captureDumpOutputDirectory = "frame_dumps";
+    private bool _alwaysOnTop = true;
+    private bool _clickThrough = true;
+    private OverlayTheme _overlayTheme = OverlayTheme.Lime;
 
     public ScanningTabViewModel(
         DataTabViewModel data,
@@ -56,6 +63,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
             "Fast scan"
         };
         SelectedProfile = Profiles[0];
+        OverlayThemes = new ObservableCollection<OverlayTheme>(Enum.GetValues<OverlayTheme>());
         UpdateCanStart();
     }
 
@@ -103,6 +111,8 @@ public sealed class ScanningTabViewModel : ViewModelBase
 
     public ObservableCollection<string> Profiles { get; }
 
+    public ObservableCollection<OverlayTheme> OverlayThemes { get; }
+
     public string? SelectedProfile
     {
         get => _selectedProfile;
@@ -119,6 +129,48 @@ public sealed class ScanningTabViewModel : ViewModelBase
     {
         get => _showOcrText;
         set => SetProperty(ref _showOcrText, value);
+    }
+
+    public double OcrFrameDiffThreshold
+    {
+        get => _ocrFrameDiffThreshold;
+        set => SetProperty(ref _ocrFrameDiffThreshold, value);
+    }
+
+    public bool CaptureDumpEnabled
+    {
+        get => _captureDumpEnabled;
+        set => SetProperty(ref _captureDumpEnabled, value);
+    }
+
+    public int CaptureDumpEveryNFrames
+    {
+        get => _captureDumpEveryNFrames;
+        set => SetProperty(ref _captureDumpEveryNFrames, value);
+    }
+
+    public string CaptureDumpOutputDirectory
+    {
+        get => _captureDumpOutputDirectory;
+        set => SetProperty(ref _captureDumpOutputDirectory, value);
+    }
+
+    public bool AlwaysOnTop
+    {
+        get => _alwaysOnTop;
+        set => SetProperty(ref _alwaysOnTop, value);
+    }
+
+    public bool ClickThrough
+    {
+        get => _clickThrough;
+        set => SetProperty(ref _clickThrough, value);
+    }
+
+    public OverlayTheme Theme
+    {
+        get => _overlayTheme;
+        set => SetProperty(ref _overlayTheme, value);
     }
 
     public bool HasCsvData
@@ -256,16 +308,29 @@ public sealed class ScanningTabViewModel : ViewModelBase
     {
         var confidence = (float)Math.Clamp(_confidenceThreshold, 0.0, 1.0);
         var fps = Math.Max(1, (int)Math.Round(_fps));
+        var ocrFrameDiff = (float)Math.Clamp(_ocrFrameDiffThreshold, 0.0, 1.0);
+        var dumpEveryNFrames = Math.Max(0, _captureDumpEveryNFrames);
+        var outputDirectory = string.IsNullOrWhiteSpace(_captureDumpOutputDirectory)
+            ? "frame_dumps"
+            : _captureDumpOutputDirectory;
 
         return new ScanSessionOptions(
             TargetFps: fps,
-            OcrFrameDiffThreshold: 0.02f,
+            OcrFrameDiffThreshold: ocrFrameDiff,
             Preprocess: new PreprocessOptions(Profile: ResolveProfile()),
             Ocr: new OcrOptions(MinTokenConfidence: confidence),
             Extraction: new ExtractionOptions(MinTokenConfidence: confidence),
             Stabilizer: new StabilizerOptions(ConfidenceThreshold: confidence),
-            Overlay: new OverlayOptions(ShowBadgeText: _showBadgeText, ShowOcrText: _showOcrText),
-            CaptureDump: new CaptureDumpOptions());
+            Overlay: new OverlayOptions(
+                AlwaysOnTop: _alwaysOnTop,
+                ClickThrough: _clickThrough,
+                ShowBadgeText: _showBadgeText,
+                Theme: _overlayTheme,
+                ShowOcrText: _showOcrText),
+            CaptureDump: new CaptureDumpOptions(
+                Enabled: _captureDumpEnabled,
+                DumpEveryNFrames: dumpEveryNFrames,
+                OutputDirectory: outputDirectory));
     }
 
     private PreprocessProfile ResolveProfile()
