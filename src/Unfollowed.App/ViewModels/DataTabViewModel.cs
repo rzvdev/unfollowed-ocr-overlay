@@ -210,6 +210,17 @@ public sealed class DataTabViewModel : ViewModelBase
             var exporter = new InstagramJsonCsvExporter();
             exporter.Export(_followingJsonPath, _followersJsonPath, _outputDirectory, CancellationToken.None);
 
+            var followingCsvPath = System.IO.Path.Combine(_outputDirectory, "following.csv");
+            var followersCsvPath = System.IO.Path.Combine(_outputDirectory, "followers.csv");
+            var nonFollowBackCsvPath = System.IO.Path.Combine(_outputDirectory, "non_follow_back.csv");
+
+            var following = _importer.ImportUsernames(followingCsvPath, new CsvImportOptions(), CancellationToken.None);
+            var followers = _importer.ImportUsernames(followersCsvPath, new CsvImportOptions(), CancellationToken.None);
+            var data = _calculator.Compute(following, followers);
+
+            WriteUsernameCsv(nonFollowBackCsvPath, data.NonFollowBack, CancellationToken.None);
+
+            StatusMessage = $"Converted JSON to CSV in {_outputDirectory} and created {System.IO.Path.GetFileName(nonFollowBackCsvPath)}.";
             StatusMessage = $"Converted JSON to CSV in {_outputDirectory}.";
             ClearError();
 
@@ -221,9 +232,9 @@ public sealed class DataTabViewModel : ViewModelBase
 
             if (result == System.Windows.MessageBoxResult.Yes)
             {
+                _followingPath = followingCsvPath;
+                _followersPath = followersCsvPath;
                 _followingPath = System.IO.Path.Combine(_outputDirectory, "following.csv");
-                _followersPath = System.IO.Path.Combine(_outputDirectory, "followers.csv");
-                StatusMessage = "Loaded generated CSV files.";
                 TryComputeResults();
             }
         }
@@ -318,6 +329,18 @@ public sealed class DataTabViewModel : ViewModelBase
         };
 
         return dialog.ShowDialog() == DialogResult.OK ? dialog.SelectedPath : null;
+    }
+
+    private static void WriteUsernameCsv(string path, IReadOnlyCollection<string> usernames, CancellationToken ct)
+    {
+        using var writer = new StreamWriter(path, false);
+        writer.WriteLine("username");
+
+        foreach (var username in usernames)
+        {
+            ct.ThrowIfCancellationRequested();
+            writer.WriteLine(username);
+        }
     }
 
     private sealed class RelayCommand : ICommand
