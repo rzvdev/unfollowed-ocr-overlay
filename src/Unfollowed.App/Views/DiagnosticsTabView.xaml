@@ -10,11 +10,11 @@
             </Grid.RowDefinitions>
             <Grid>
                 <TextBlock Text="Diagnostics" FontSize="18" FontWeight="SemiBold" />
-                <Button Grid.Column="1"
+                <Button
                         Content="Clear logs"
                         Command="{Binding ClearLogsCommand}"
                         Padding="12,6"
-                        Margin="12,0,0,0" />
+                        Margin="106,0,0,0" />
             </Grid>
             <UniformGrid Grid.Row="1" Columns="2" Margin="0,16,0,16">
                 <Border Style="{StaticResource SurfaceCard}" Padding="12" Margin="0,0,12,0">

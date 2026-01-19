@@ -74,7 +74,8 @@
                 <TabControl Margin="0,20,0,0">
                     <TabItem Header="Following">
                         <Grid>
-                            <ListView ItemsSource="{Binding Following}" />
+                            <ListView ItemsSource="{Binding Following}"
+                                      MaxHeight="300"/>
                             <TextBlock Text="No following usernames loaded."
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
@@ -93,7 +94,8 @@
                     </TabItem>
                     <TabItem Header="Followers">
                         <Grid>
-                            <ListView ItemsSource="{Binding Followers}" />
+                            <ListView ItemsSource="{Binding Followers}"
+                                      MaxHeight="300"/>
                             <TextBlock Text="No follower usernames loaded."
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">
@@ -112,7 +114,8 @@
                     </TabItem>
                     <TabItem Header="Not following back">
                         <Grid>
-                            <ListView ItemsSource="{Binding NonFollowBack}" />
+                            <ListView ItemsSource="{Binding NonFollowBack}"
+                                      MaxHeight="300"/>
                             <TextBlock Text="No non-follow-back usernames loaded."
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center">

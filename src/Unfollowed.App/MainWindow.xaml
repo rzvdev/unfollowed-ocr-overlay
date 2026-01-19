@@ -4,9 +4,15 @@
         xmlns:views="clr-namespace:Unfollowed.App.Views"
         Title="Unfollowed" Height="600" Width="900">
     <Grid>
-        <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="59*"/>
+            <ColumnDefinition Width="841*"/>
+        </Grid.ColumnDefinitions>
+        <TabControl SelectedIndex="{Binding SelectedTabIndex}" Grid.ColumnSpan="2">
             <TabItem Header="Data">
-                <views:DataTabView DataContext="{Binding Data}" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <views:DataTabView DataContext="{Binding Data}" />
+                </ScrollViewer>
             </TabItem>
             <TabItem Header="Scanning">
                 <views:ScanningTabView DataContext="{Binding Scanning}" />
