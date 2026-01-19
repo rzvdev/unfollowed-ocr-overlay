@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using System.Windows.Forms;
 using Microsoft.Win32;
 using Unfollowed.Csv;
 using Unfollowed.Core.Models;
@@ -11,11 +12,17 @@ public sealed class DataTabViewModel : ViewModelBase
     private readonly INonFollowBackCalculator _calculator;
     private string? _followingPath;
     private string? _followersPath;
+    private string? _followingJsonPath;
+    private string? _followersJsonPath;
+    private string? _outputDirectory;
     private int _followingCount;
     private int _followersCount;
     private int _nonFollowBackCount;
     private bool _hasCsvData;
     private NonFollowBackData? _computedData;
+    private string _followingJsonLabel = "No following.json selected.";
+    private string _followersJsonLabel = "No followers.json selected.";
+    private string _outputDirectoryLabel = "No output folder selected.";
     private string _statusMessage = "Select your following and followers CSV exports to compute the results.";
     private bool _hasError;
     private string _errorMessage = string.Empty;
@@ -27,11 +34,23 @@ public sealed class DataTabViewModel : ViewModelBase
 
         LoadFollowingCsvCommand = new RelayCommand(_ => LoadFollowingCsv());
         LoadFollowersCsvCommand = new RelayCommand(_ => LoadFollowersCsv());
+        SelectFollowingJsonCommand = new RelayCommand(_ => SelectFollowingJson());
+        SelectFollowersJsonCommand = new RelayCommand(_ => SelectFollowersJson());
+        SelectOutputDirectoryCommand = new RelayCommand(_ => SelectOutputDirectory());
+        ConvertJsonToCsvCommand = new RelayCommand(_ => ConvertJsonToCsv());
     }
 
     public ICommand LoadFollowingCsvCommand { get; }
 
     public ICommand LoadFollowersCsvCommand { get; }
+
+    public ICommand SelectFollowingJsonCommand { get; }
+
+    public ICommand SelectFollowersJsonCommand { get; }
+
+    public ICommand SelectOutputDirectoryCommand { get; }
+
+    public ICommand ConvertJsonToCsvCommand { get; }
 
     public int FollowingCount
     {
@@ -61,6 +80,24 @@ public sealed class DataTabViewModel : ViewModelBase
     {
         get => _computedData;
         private set => SetProperty(ref _computedData, value);
+    }
+
+    public string FollowingJsonLabel
+    {
+        get => _followingJsonLabel;
+        private set => SetProperty(ref _followingJsonLabel, value);
+    }
+
+    public string FollowersJsonLabel
+    {
+        get => _followersJsonLabel;
+        private set => SetProperty(ref _followersJsonLabel, value);
+    }
+
+    public string OutputDirectoryLabel
+    {
+        get => _outputDirectoryLabel;
+        private set => SetProperty(ref _outputDirectoryLabel, value);
     }
 
     public string StatusMessage
@@ -109,6 +146,93 @@ public sealed class DataTabViewModel : ViewModelBase
         StatusMessage = $"Loaded followers CSV: {System.IO.Path.GetFileName(path)}";
         ClearError();
         TryComputeResults();
+    }
+
+    private void SelectFollowingJson()
+    {
+        var path = PromptForJsonPath("Select following.json");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            StatusMessage = "Following JSON selection canceled.";
+            return;
+        }
+
+        _followingJsonPath = path;
+        FollowingJsonLabel = System.IO.Path.GetFileName(path);
+        StatusMessage = $"Loaded following JSON: {System.IO.Path.GetFileName(path)}";
+        ClearError();
+    }
+
+    private void SelectFollowersJson()
+    {
+        var path = PromptForJsonPath("Select followers.json");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            StatusMessage = "Followers JSON selection canceled.";
+            return;
+        }
+
+        _followersJsonPath = path;
+        FollowersJsonLabel = System.IO.Path.GetFileName(path);
+        StatusMessage = $"Loaded followers JSON: {System.IO.Path.GetFileName(path)}";
+        ClearError();
+    }
+
+    private void SelectOutputDirectory()
+    {
+        var path = PromptForOutputDirectory();
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            StatusMessage = "Output folder selection canceled.";
+            return;
+        }
+
+        _outputDirectory = path;
+        OutputDirectoryLabel = path;
+        StatusMessage = "Selected output folder.";
+        ClearError();
+    }
+
+    private void ConvertJsonToCsv()
+    {
+        if (string.IsNullOrWhiteSpace(_followingJsonPath)
+            || string.IsNullOrWhiteSpace(_followersJsonPath)
+            || string.IsNullOrWhiteSpace(_outputDirectory))
+        {
+            HasError = true;
+            ErrorMessage = "Select following.json, followers.json, and an output folder before converting.";
+            StatusMessage = "Missing JSON conversion inputs.";
+            return;
+        }
+
+        try
+        {
+            var exporter = new InstagramJsonCsvExporter();
+            exporter.Export(_followingJsonPath, _followersJsonPath, _outputDirectory, CancellationToken.None);
+
+            StatusMessage = $"Converted JSON to CSV in {_outputDirectory}.";
+            ClearError();
+
+            var result = System.Windows.MessageBox.Show(
+                "Conversion complete. Load the generated CSV files now?",
+                "Load generated CSV files",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
+
+            if (result == System.Windows.MessageBoxResult.Yes)
+            {
+                _followingPath = System.IO.Path.Combine(_outputDirectory, "following.csv");
+                _followersPath = System.IO.Path.Combine(_outputDirectory, "followers.csv");
+                StatusMessage = "Loaded generated CSV files.";
+                TryComputeResults();
+            }
+        }
+        catch (Exception ex)
+        {
+            HasError = true;
+            ErrorMessage = ex.Message;
+            StatusMessage = "Failed to convert JSON to CSV.";
+        }
     }
 
     private void TryComputeResults()
@@ -170,6 +294,30 @@ public sealed class DataTabViewModel : ViewModelBase
         };
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private static string? PromptForJsonPath(string title)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*",
+            Title = title,
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
+
+    private static string? PromptForOutputDirectory()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Select output folder",
+            ShowNewFolderButton = true
+        };
+
+        return dialog.ShowDialog() == DialogResult.OK ? dialog.SelectedPath : null;
     }
 
     private sealed class RelayCommand : ICommand
