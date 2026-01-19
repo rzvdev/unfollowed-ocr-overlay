@@ -4,7 +4,45 @@
     <Grid Margin="24">
         <Border Style="{StaticResource SurfaceCard}" Padding="20">
             <StackPanel>
-                <TextBlock Text="Import CSV data" FontSize="18" FontWeight="SemiBold" />
+                <TextBlock Text="Convert JSON to CSV" FontSize="18" FontWeight="SemiBold" />
+                <StackPanel Margin="0,12,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Button Content="Select following.json"
+                                Command="{Binding SelectFollowingJsonCommand}"
+                                Width="170"
+                                Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding FollowingJsonLabel}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Width="320" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Select followers.json"
+                                Command="{Binding SelectFollowersJsonCommand}"
+                                Width="170"
+                                Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding FollowersJsonLabel}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Width="320" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="Select output folder"
+                                Command="{Binding SelectOutputDirectoryCommand}"
+                                Width="170"
+                                Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding OutputDirectoryLabel}"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Width="320" />
+                    </StackPanel>
+                    <Button Content="Convert JSON to CSV"
+                            Command="{Binding ConvertJsonToCsvCommand}"
+                            Width="170"
+                            Margin="0,12,0,0" />
+                </StackPanel>
+
+                <TextBlock Text="Import CSV data" FontSize="18" FontWeight="SemiBold" Margin="0,24,0,0" />
                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                     <Button Content="Load following CSV"
                             Command="{Binding LoadFollowingCsvCommand}"
