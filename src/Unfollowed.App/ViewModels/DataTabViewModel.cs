@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -27,11 +28,18 @@ public sealed class DataTabViewModel : ViewModelBase
     private string _statusMessage = "Select your following and followers CSV exports to compute the results.";
     private bool _hasError;
     private string _errorMessage = string.Empty;
+    private readonly ObservableCollection<string> _following = new();
+    private readonly ObservableCollection<string> _followers = new();
+    private readonly ObservableCollection<string> _nonFollowBack = new();
 
     public DataTabViewModel(ICsvImporter importer, INonFollowBackCalculator calculator)
     {
         _importer = importer;
         _calculator = calculator;
+
+        Following = new ReadOnlyObservableCollection<string>(_following);
+        Followers = new ReadOnlyObservableCollection<string>(_followers);
+        NonFollowBack = new ReadOnlyObservableCollection<string>(_nonFollowBack);
 
         LoadFollowingCsvCommand = new RelayCommand(_ => LoadFollowingCsv());
         LoadFollowersCsvCommand = new RelayCommand(_ => LoadFollowersCsv());
@@ -82,6 +90,12 @@ public sealed class DataTabViewModel : ViewModelBase
         get => _computedData;
         private set => SetProperty(ref _computedData, value);
     }
+
+    public ReadOnlyObservableCollection<string> Following { get; }
+
+    public ReadOnlyObservableCollection<string> Followers { get; }
+
+    public ReadOnlyObservableCollection<string> NonFollowBack { get; }
 
     public string FollowingJsonLabel
     {
@@ -252,6 +266,7 @@ public sealed class DataTabViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(_followingPath) || string.IsNullOrWhiteSpace(_followersPath))
         {
             HasCsvData = false;
+            ClearCollections();
             return;
         }
 
@@ -266,6 +281,9 @@ public sealed class DataTabViewModel : ViewModelBase
             NonFollowBackCount = data.NonFollowBack.Count;
             HasCsvData = true;
             ComputedData = data;
+            ResetCollection(_following, data.Following);
+            ResetCollection(_followers, data.Followers);
+            ResetCollection(_nonFollowBack, data.NonFollowBack);
             StatusMessage = "Computed non-follow-back results.";
             ClearError();
         }
@@ -276,9 +294,26 @@ public sealed class DataTabViewModel : ViewModelBase
             NonFollowBackCount = 0;
             HasCsvData = false;
             ComputedData = null;
+            ClearCollections();
             HasError = true;
             ErrorMessage = ex.Message;
             StatusMessage = "Failed to compute results.";
+        }
+    }
+
+    private void ClearCollections()
+    {
+        _following.Clear();
+        _followers.Clear();
+        _nonFollowBack.Clear();
+    }
+
+    private static void ResetCollection(ObservableCollection<string> target, IReadOnlyCollection<string> values)
+    {
+        target.Clear();
+        foreach (var value in values)
+        {
+            target.Add(value);
         }
     }
 

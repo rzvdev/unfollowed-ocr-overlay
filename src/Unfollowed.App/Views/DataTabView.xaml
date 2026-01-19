@@ -70,6 +70,69 @@
                         <TextBlock Text="{Binding NonFollowBackCount}" />
                     </StackPanel>
                 </StackPanel>
+
+                <TabControl Margin="0,20,0,0">
+                    <TabItem Header="Following">
+                        <Grid>
+                            <ListView ItemsSource="{Binding Following}" />
+                            <TextBlock Text="No following usernames loaded."
+                                       Style="{StaticResource SecondaryText}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Following.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </TabItem>
+                    <TabItem Header="Followers">
+                        <Grid>
+                            <ListView ItemsSource="{Binding Followers}" />
+                            <TextBlock Text="No follower usernames loaded."
+                                       Style="{StaticResource SecondaryText}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Followers.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </TabItem>
+                    <TabItem Header="Not following back">
+                        <Grid>
+                            <ListView ItemsSource="{Binding NonFollowBack}" />
+                            <TextBlock Text="No non-follow-back usernames loaded."
+                                       Style="{StaticResource SecondaryText}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding NonFollowBack.Count}" Value="0">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
             </StackPanel>
         </Border>
     </Grid>
