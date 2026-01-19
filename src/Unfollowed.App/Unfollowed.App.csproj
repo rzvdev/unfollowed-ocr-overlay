@@ -8,7 +8,12 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <StartupObject>Unfollowed.App.App</StartupObject>
+    <ApplicationIcon>lungurazvan.dev-logo-2-resized.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="lungurazvan.dev-logo-2-resized.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
