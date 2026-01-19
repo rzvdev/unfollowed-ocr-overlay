@@ -55,12 +55,12 @@
                                    Style="{StaticResource SecondaryText}" />
                     </StackPanel>
                 </StackPanel>
-                <StackPanel Margin="0,20,0,0">
-                    <TextBlock Text="OCR profile" FontWeight="SemiBold" />
+                <StackPanel Margin="0,20,0,0" HorizontalAlignment="Left" Orientation="Horizontal" Height="37" Width="189">
+                    <TextBlock Text="OCR profile" FontWeight="SemiBold" Width="70" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     <ComboBox ItemsSource="{Binding Profiles}"
                               SelectedItem="{Binding SelectedProfile}"
-                              Width="220"
-                              Margin="0,8,0,0" />
+                              Width="112" RenderTransformOrigin="1.571,-0.215" Height="28"
+                              />
                 </StackPanel>
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="Overlay options" FontWeight="SemiBold" />
