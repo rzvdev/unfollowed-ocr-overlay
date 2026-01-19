@@ -50,9 +50,10 @@ public partial class App : System.Windows.Application
         window.Show();
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    protected override async void OnExit(ExitEventArgs e)
     {
-        _serviceProvider?.Dispose();
+        if(_serviceProvider != null)
+            await _serviceProvider.DisposeAsync();
         base.OnExit(e);
     }
 
