@@ -30,7 +30,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private double _fps = 15;
     private double _confidenceThreshold = 0.85;
     private string? _selectedProfile;
-    private bool _showOcrBoxes = true;
+    private bool _showBadgeText = true;
     private bool _showOcrText = true;
 
     public ScanningTabViewModel(
@@ -109,10 +109,10 @@ public sealed class ScanningTabViewModel : ViewModelBase
         set => SetProperty(ref _selectedProfile, value);
     }
 
-    public bool ShowOcrBoxes
+    public bool ShowBadgeText
     {
-        get => _showOcrBoxes;
-        set => SetProperty(ref _showOcrBoxes, value);
+        get => _showBadgeText;
+        set => SetProperty(ref _showBadgeText, value);
     }
 
     public bool ShowOcrText
@@ -264,7 +264,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
             Ocr: new OcrOptions(MinTokenConfidence: confidence),
             Extraction: new ExtractionOptions(MinTokenConfidence: confidence),
             Stabilizer: new StabilizerOptions(ConfidenceThreshold: confidence),
-            Overlay: new OverlayOptions(ShowBadgeText: _showOcrBoxes, ShowOcrText: _showOcrText),
+            Overlay: new OverlayOptions(ShowBadgeText: _showBadgeText, ShowOcrText: _showOcrText),
             CaptureDump: new CaptureDumpOptions());
     }
 

@@ -65,8 +65,8 @@
                 <StackPanel Margin="0,20,0,0">
                     <TextBlock Text="Overlay options" FontWeight="SemiBold" />
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                        <CheckBox Content="Show OCR boxes"
-                                  IsChecked="{Binding ShowOcrBoxes}"
+                        <CheckBox Content="Show badge text"
+                                  IsChecked="{Binding ShowBadgeText}"
                                   Margin="0,0,16,0" />
                         <CheckBox Content="Show OCR text"
                                   IsChecked="{Binding ShowOcrText}" />
