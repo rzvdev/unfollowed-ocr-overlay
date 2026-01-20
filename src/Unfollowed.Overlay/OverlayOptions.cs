@@ -5,5 +5,6 @@ public sealed record OverlayOptions(
    bool ClickThrough = true,
    bool ShowBadgeText = true,
    OverlayTheme Theme = OverlayTheme.Lime,
-   bool ShowOcrText = false
+   bool ShowOcrText = false,
+   bool ShowRoiOutline = false
 );

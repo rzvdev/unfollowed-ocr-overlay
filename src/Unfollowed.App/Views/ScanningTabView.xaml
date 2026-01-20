@@ -69,7 +69,10 @@
                                   IsChecked="{Binding ShowBadgeText}"
                                   Margin="0,0,16,0" />
                         <CheckBox Content="Show OCR text"
-                                  IsChecked="{Binding ShowOcrText}" />
+                                  IsChecked="{Binding ShowOcrText}"
+                                  Margin="0,0,16,0" />
+                        <CheckBox Content="Show ROI outline"
+                                  IsChecked="{Binding ShowRoiOutline}" />
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Margin="0,24,0,0">

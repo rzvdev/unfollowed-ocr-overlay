@@ -108,6 +108,27 @@ dotnet run --project src/Unfollowed.App -- settings --reset
 
 ---
 
+## Scan Log Timing Fields
+
+During `scan`/`scan-csv`, the CLI logs per-frame timing metrics like:
+
+```
+Frame 70 timings (ms): capture=11.9 preprocess=6.3 ocr=13.4 extract=0.8 render=0.2 total=33.2
+```
+
+Each field represents a stage in the scan pipeline:
+- **capture** — time to grab a raw frame from the ROI capture source.
+- **preprocess** — time to convert the frame into the grayscale/preprocessed format consumed by OCR.
+- **ocr** — time spent running the OCR engine on the preprocessed frame.
+- **extract** — time spent extracting candidate usernames and applying matching rules.
+- **render** — time spent updating the overlay with the latest highlights.
+- **total** — end-to-end time for the frame (from capture start to render completion).
+
+These values are used to understand performance bottlenecks and verify the scan loop is running within
+the target FPS window.
+
+---
+
 ## Build Configuration Notes
 
 - Target framework: `net8.0-windows`

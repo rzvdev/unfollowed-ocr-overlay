@@ -73,7 +73,8 @@ public partial class App : System.Windows.Application
             StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
             Roi: null,
             Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime),
-            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System)
+            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System),
+            ShowRoiOutline: configuration.GetValue("Overlay:ShowRoiOutline", false)
         );
     }
 }

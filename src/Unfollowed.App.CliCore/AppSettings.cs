@@ -10,5 +10,6 @@ public sealed record AppSettings(
     float StabilizerConfidenceThreshold,
     RoiSelection? Roi,
     OverlayTheme Theme,
-    ThemeMode ThemeMode
+    ThemeMode ThemeMode,
+    bool ShowRoiOutline
 );
