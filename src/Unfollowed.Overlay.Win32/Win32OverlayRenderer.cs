@@ -73,6 +73,23 @@ namespace Unfollowed.Overlay.Win32
                 var canvas = (Canvas)_window.Content;
                 canvas.Children.Clear();
 
+                if (options.ShowRoiOutline)
+                {
+                    var outline = new Rectangle
+                    {
+                        Width = Math.Max(1, _window.Width - 2),
+                        Height = Math.Max(1, _window.Height - 2),
+                        StrokeThickness = 2,
+                        Stroke = strokeBrush,
+                        Fill = System.Windows.Media.Brushes.Transparent,
+                        IsHitTestVisible = false
+                    };
+
+                    Canvas.SetLeft(outline, 1);
+                    Canvas.SetTop(outline, 1);
+                    canvas.Children.Add(outline);
+                }
+
                 foreach (var h in highlights)
                 {
                     var localX = (h.ScreenRect.X - roi.X) * _dipScaleX;
