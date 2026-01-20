@@ -131,7 +131,7 @@ public static class Program
         services.AddSingleton<IWindowsOcrEngineFactory, WindowsOcrEngineFactory>();
         services.AddSingleton<IOcrProvider, WindowsOcrProvider>();
 
-        using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider();
         return await CliCommandHandlers.RunAsync(provider, configuration, args);
     }
 #else

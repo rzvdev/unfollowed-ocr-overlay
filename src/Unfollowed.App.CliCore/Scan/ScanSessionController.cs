@@ -234,6 +234,12 @@ public sealed class ScanSessionController : IScanSessionController
                     }
                     frameIndex++;
                 }
+                else
+                {
+                    skippedCount++;
+                }
+
+                previousProcessed = processed;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
