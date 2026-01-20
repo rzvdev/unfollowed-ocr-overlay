@@ -605,6 +605,7 @@ public static class CliCommandHandlers
             OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
             OcrMinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
             StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
+            AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false),
             Roi: null,
             Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime),
             ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System),
@@ -672,6 +673,16 @@ public static class CliCommandHandlers
             updated = updated with { StabilizerConfidenceThreshold = stabilizerConfidence };
         }
 
+        if (parsed.HasFlag("allow-uncertain"))
+        {
+            updated = updated with { AllowUncertainHighlights = true };
+        }
+
+        if (parsed.HasFlag("disallow-uncertain"))
+        {
+            updated = updated with { AllowUncertainHighlights = false };
+        }
+
         if (parsed.TryGetOption("theme", out var themeText))
         {
             if (!Enum.TryParse<OverlayTheme>(themeText, true, out var theme))
@@ -725,7 +736,7 @@ public static class CliCommandHandlers
         if (!hasOverrides)
         {
             PrintSettings(current);
-            Console.WriteLine("Use --target-fps, --ocr-frame-diff, --ocr-min-confidence, --stabilizer-confidence, --theme, --theme-mode, --show-roi, --hide-roi, or --roi to update settings.");
+            Console.WriteLine("Use --target-fps, --ocr-frame-diff, --ocr-min-confidence, --stabilizer-confidence, --allow-uncertain, --disallow-uncertain, --theme, --theme-mode, --show-roi, --hide-roi, or --roi to update settings.");
             return 0;
         }
 
@@ -747,6 +758,7 @@ public static class CliCommandHandlers
         Console.WriteLine($"  OcrFrameDiffThreshold: {settings.OcrFrameDiffThreshold}");
         Console.WriteLine($"  OcrMinTokenConfidence: {settings.OcrMinTokenConfidence}");
         Console.WriteLine($"  StabilizerConfidenceThreshold: {settings.StabilizerConfidenceThreshold}");
+        Console.WriteLine($"  AllowUncertainHighlights: {settings.AllowUncertainHighlights}");
         Console.WriteLine($"  Theme: {settings.Theme}");
         Console.WriteLine($"  ThemeMode: {settings.ThemeMode}");
         Console.WriteLine($"  ShowRoiOutline: {settings.ShowRoiOutline}");
@@ -767,6 +779,8 @@ public static class CliCommandHandlers
             || parsed.HasOption("ocr-frame-diff")
             || parsed.HasOption("ocr-min-confidence")
             || parsed.HasOption("stabilizer-confidence")
+            || parsed.HasFlag("allow-uncertain")
+            || parsed.HasFlag("disallow-uncertain")
             || parsed.HasOption("theme")
             || parsed.HasOption("theme-mode")
             || parsed.HasFlag("show-roi")
@@ -866,7 +880,7 @@ public static class CliCommandHandlers
             WindowSizeM: configuration.GetValue("Stabilizer:WindowSizeM", 5),
             RequiredK: configuration.GetValue("Stabilizer:RequiredK", 3),
             ConfidenceThreshold: settings.StabilizerConfidenceThreshold,
-            AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false)
+            AllowUncertainHighlights: settings.AllowUncertainHighlights
         );
 
         var captureDumpOptions = new CaptureDumpOptions(
@@ -962,6 +976,8 @@ public static class CliCommandHandlers
         Console.WriteLine("  --ocr-frame-diff <float>    Override OCR frame diff threshold");
         Console.WriteLine("  --ocr-min-confidence <float>  Override OCR min token confidence");
         Console.WriteLine("  --stabilizer-confidence <float>  Override stabilizer confidence threshold");
+        Console.WriteLine("  --allow-uncertain        Show highlights before K-of-M stabilization");
+        Console.WriteLine("  --disallow-uncertain     Require K-of-M stabilization before highlights");
         Console.WriteLine("  --theme <Lime|Amber|Cyan>   Override overlay theme");
         Console.WriteLine("  --theme-mode <Light|Dark|System>  Override theme mode");
         Console.WriteLine("  --show-roi                Draw ROI outline during scan");

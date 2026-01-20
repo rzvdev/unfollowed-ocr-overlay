@@ -8,6 +8,7 @@ public sealed record AppSettings(
     float OcrFrameDiffThreshold,
     float OcrMinTokenConfidence,
     float StabilizerConfidenceThreshold,
+    bool AllowUncertainHighlights,
     RoiSelection? Roi,
     OverlayTheme Theme,
     ThemeMode ThemeMode,

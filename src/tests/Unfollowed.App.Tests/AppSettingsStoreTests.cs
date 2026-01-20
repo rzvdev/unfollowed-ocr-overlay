@@ -19,6 +19,7 @@ public sealed class AppSettingsStoreTests
             OcrFrameDiffThreshold: 0.12f,
             OcrMinTokenConfidence: 0.33f,
             StabilizerConfidenceThreshold: 0.44f,
+            AllowUncertainHighlights: true,
             Roi: new RoiSelection(10, 20, 300, 400, 1),
             Theme: OverlayTheme.Amber,
             ThemeMode: ThemeMode.System,
@@ -27,7 +28,7 @@ public sealed class AppSettingsStoreTests
         try
         {
             store.Save(settings);
-            var loaded = store.Load(new AppSettings(1, 0.01f, 0.0f, 0.1f, null, OverlayTheme.Lime, ThemeMode: ThemeMode.System, ShowRoiOutline: false));
+            var loaded = store.Load(new AppSettings(1, 0.01f, 0.0f, 0.1f, false, null, OverlayTheme.Lime, ThemeMode: ThemeMode.System, ShowRoiOutline: false));
 
             Assert.Equal(settings, loaded);
         }
