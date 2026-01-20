@@ -10,7 +10,7 @@ using Unfollowed.Core.Stabilization;
 using Unfollowed.Csv;
 using Unfollowed.Ocr;
 using Unfollowed.Preprocess;
-#if NET8_0_WINDOWS
+#if WINDOWS
 using Unfollowed.Capture;
 using Unfollowed.Overlay;
 using Unfollowed.Overlay.Win32;
@@ -92,7 +92,7 @@ public static class Program
         }
     }
 
-#if NET8_0_WINDOWS
+#if WINDOWS
     private static async Task<int> RunWindowsCliAsync(string[] args)
     {
         var configuration = new ConfigurationBuilder()
@@ -131,7 +131,7 @@ public static class Program
         services.AddSingleton<IWindowsOcrEngineFactory, WindowsOcrEngineFactory>();
         services.AddSingleton<IOcrProvider, WindowsOcrProvider>();
 
-        using var provider = services.BuildServiceProvider();
+        await using var provider = services.BuildServiceProvider();
         return await CliCommandHandlers.RunAsync(provider, configuration, args);
     }
 #else

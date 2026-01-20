@@ -71,9 +71,11 @@ public partial class App : System.Windows.Application
             OcrFrameDiffThreshold: configuration.GetValue("Scan:OcrFrameDiffThreshold", 0.02f),
             OcrMinTokenConfidence: configuration.GetValue("Ocr:MinTokenConfidence", 0.0f),
             StabilizerConfidenceThreshold: configuration.GetValue("Stabilizer:ConfidenceThreshold", 0.70f),
+            AllowUncertainHighlights: configuration.GetValue("Stabilizer:AllowUncertainHighlights", false),
             Roi: null,
             Theme: configuration.GetValue("Overlay:Theme", OverlayTheme.Lime),
-            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System)
+            ThemeMode: configuration.GetValue("App:ThemeMode", ThemeMode.System),
+            ShowRoiOutline: configuration.GetValue("Overlay:ShowRoiOutline", false)
         );
     }
 }
