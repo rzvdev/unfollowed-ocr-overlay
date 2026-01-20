@@ -40,6 +40,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
     private string? _selectedProfile;
     private bool _showBadgeText = true;
     private bool _showOcrText = true;
+    private bool _showRoiOutline;
     private double _ocrFrameDiffThreshold = 0.02;
     private bool _captureDumpEnabled;
     private int _captureDumpEveryNFrames;
@@ -174,6 +175,12 @@ public sealed class ScanningTabViewModel : ViewModelBase
     {
         get => _showOcrText;
         set => SetProperty(ref _showOcrText, value);
+    }
+
+    public bool ShowRoiOutline
+    {
+        get => _showRoiOutline;
+        set => SetProperty(ref _showRoiOutline, value);
     }
 
     public double OcrFrameDiffThreshold
@@ -525,7 +532,8 @@ public sealed class ScanningTabViewModel : ViewModelBase
                 ClickThrough: _clickThrough,
                 ShowBadgeText: _showBadgeText,
                 Theme: _overlayTheme,
-                ShowOcrText: _showOcrText),
+                ShowOcrText: _showOcrText,
+                ShowRoiOutline: _showRoiOutline),
             CaptureDump: new CaptureDumpOptions(
                 Enabled: _captureDumpEnabled,
                 DumpEveryNFrames: dumpEveryNFrames,
