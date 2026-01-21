@@ -79,6 +79,7 @@ public sealed class ScanSessionController : IScanSessionController
         await _capture.InitializeAsync(roi, ct);
         await _overlay.SetRoiAsync(roi, ct);
         await _overlay.InitializeAsync(options.Overlay, ct);
+        await _overlay.UpdateHighlightsAsync(Array.Empty<Highlight>(), ct);
 
         var normalizedSet = BuildNormalizedSet(data);
         _sessionCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -200,7 +201,15 @@ public sealed class ScanSessionController : IScanSessionController
                         processed.Width,
                         processed.Height);
 
-                    lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                    if (candidates.Count == 0)
+                    {
+                        _stabilizer.Reset();
+                        lastHighlights = Array.Empty<Highlight>();
+                    }
+                    else
+                    {
+                        lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                    }
 
                     var renderStart = Stopwatch.GetTimestamp();
                     await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
@@ -233,6 +242,12 @@ public sealed class ScanSessionController : IScanSessionController
                     }
                     frameIndex++;
                 }
+                else
+                {
+                    skippedCount++;
+                }
+
+                previousProcessed = processed;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
