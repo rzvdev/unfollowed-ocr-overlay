@@ -1,6 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Shapes;
 using Unfollowed.Capture;
 using Unfollowed.Core.Models;
@@ -14,7 +14,6 @@ namespace Unfollowed.Overlay.Win32
     /// </summary>
     public sealed class Win32OverlayRenderer : IOverlayRenderer
     {
-        private const uint MONITOR_DEFAULTTONEAREST = 2;
         private WpfUiThreadHost? _ui;
         private OverlayWindow? _window;
         private OverlayOptions? _options;
@@ -37,20 +36,20 @@ namespace Unfollowed.Overlay.Win32
             var ui = _ui ?? throw new ObjectDisposedException(nameof(Win32OverlayRenderer));
             _options = options;
             _roi = roi;
-            (_dipScaleX, _dipScaleY) = GetDipScale(roi);
 
             await ui.InvokeAsync(() =>
             {
                 _window = new OverlayWindow(options.ClickThrough)
                 {
-                    Left = roi.X * _dipScaleX,
-                    Top = roi.Y * _dipScaleY,
-                    Width = roi.Width * _dipScaleX,
-                    Height = roi.Height * _dipScaleY,
                     Topmost = options.AlwaysOnTop
                 };
 
                 _window.Show();
+
+                var dpi = VisualTreeHelper.GetDpi(_window);
+                _dipScaleX = dpi.DpiScaleX == 0 ? 1.0 : 1.0 / dpi.DpiScaleX;
+                _dipScaleY = dpi.DpiScaleY == 0 ? 1.0 : 1.0 / dpi.DpiScaleY;
+                UpdateWindowBounds(roi);
             });
         }
 
@@ -72,6 +71,23 @@ namespace Unfollowed.Overlay.Win32
 
                 var canvas = (Canvas)_window.Content;
                 canvas.Children.Clear();
+
+                if (options.ShowRoiOutline)
+                {
+                    var outline = new Rectangle
+                    {
+                        Width = Math.Max(1, _window.Width - 2),
+                        Height = Math.Max(1, _window.Height - 2),
+                        StrokeThickness = 2,
+                        Stroke = strokeBrush,
+                        Fill = System.Windows.Media.Brushes.Transparent,
+                        IsHitTestVisible = false
+                    };
+
+                    Canvas.SetLeft(outline, 1);
+                    Canvas.SetTop(outline, 1);
+                    canvas.Children.Add(outline);
+                }
 
                 foreach (var h in highlights)
                 {
@@ -193,23 +209,17 @@ namespace Unfollowed.Overlay.Win32
             }
         }
 
-        private static (double scaleX, double scaleY) GetDipScale(RoiSelection roi)
+        private void UpdateWindowBounds(RoiSelection roi)
         {
-            var point = new POINT { X = roi.X, Y = roi.Y };
-            var monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
-            if (monitor == IntPtr.Zero)
+            if (_window is null)
             {
-                return (1.0, 1.0);
+                return;
             }
 
-            if (GetDpiForMonitor(monitor, MonitorDpiType.MDT_EFFECTIVE_DPI, out var dpiX, out var dpiY) != 0)
-            {
-                return (1.0, 1.0);
-            }
-
-            var scaleX = 96.0 / dpiX;
-            var scaleY = 96.0 / dpiY;
-            return (scaleX, scaleY);
+            _window.Left = roi.X * _dipScaleX;
+            _window.Top = roi.Y * _dipScaleY;
+            _window.Width = roi.Width * _dipScaleX;
+            _window.Height = roi.Height * _dipScaleY;
         }
 
         private static (System.Windows.Media.Brush Stroke, System.Windows.Media.Brush Text) GetThemeBrushes(OverlayTheme theme)
@@ -219,27 +229,5 @@ namespace Unfollowed.Overlay.Win32
                 OverlayTheme.Cyan => (System.Windows.Media.Brushes.Cyan, System.Windows.Media.Brushes.Cyan),
                 _ => (System.Windows.Media.Brushes.LimeGreen, System.Windows.Media.Brushes.LimeGreen)
             };
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct POINT
-        {
-            public int X;
-            public int Y;
-        }
-
-        private enum MonitorDpiType
-        {
-            MDT_EFFECTIVE_DPI = 0
-        }
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
-
-        [DllImport("shcore.dll")]
-        private static extern int GetDpiForMonitor(
-            IntPtr hmonitor,
-            MonitorDpiType dpiType,
-            out uint dpiX,
-            out uint dpiY);
     }
 }
