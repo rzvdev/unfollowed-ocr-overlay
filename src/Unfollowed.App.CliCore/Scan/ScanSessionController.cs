@@ -201,7 +201,15 @@ public sealed class ScanSessionController : IScanSessionController
                         processed.Width,
                         processed.Height);
 
-                    lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                    if (candidates.Count == 0)
+                    {
+                        _stabilizer.Reset();
+                        lastHighlights = Array.Empty<Highlight>();
+                    }
+                    else
+                    {
+                        lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                    }
 
                     var renderStart = Stopwatch.GetTimestamp();
                     await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
