@@ -33,6 +33,8 @@ public sealed class ScanLifecycleTests
             OcrFrameDiffThreshold: 0.0f,
             ScrollResetDiffThreshold: 0.15f,
             ScrollResetOcrShiftRatio: 0.35f,
+            HighlightTtlFrames: 3,
+            HighlightEmptyResetFrames: 2,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
