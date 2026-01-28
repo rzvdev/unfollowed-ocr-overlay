@@ -100,6 +100,8 @@ public sealed class ScanSessionControllerTests
         => new(
             TargetFps: 4,
             OcrFrameDiffThreshold: 0.0f,
+            0.0f,
+            0.0f,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
