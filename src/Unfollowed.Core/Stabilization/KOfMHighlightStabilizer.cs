@@ -56,7 +56,7 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
             var occurrences = _frames.Count(frame => frame.ContainsKey(username));
             if (occurrences >= options.RequiredK)
             {
-                var candidate = FindMostRecentCandidate(username);
+                var candidate = FindMostRecentCandidate(username, frameCandidates);
                 if (candidate is null)
                 {
                     continue;
@@ -91,16 +91,10 @@ public sealed class KOfMHighlightStabilizer : IHighlightStabilizer
     /// <summary>
     /// Finds the most recent candidate for a username within the active window.
     /// </summary>
-    private MatchCandidate? FindMostRecentCandidate(string username)
+    private MatchCandidate? FindMostRecentCandidate(
+        string username,
+        IReadOnlyDictionary<string, MatchCandidate> mostRecentFrame)
     {
-        foreach (var frame in _frames.Reverse())
-        {
-            if (frame.TryGetValue(username, out var candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
+        return mostRecentFrame.TryGetValue(username, out var candidate) ? candidate : null;
     }
 }
