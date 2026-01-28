@@ -524,6 +524,7 @@ public sealed class ScanningTabViewModel : ViewModelBase
             TargetFps: fps,
             OcrFrameDiffThreshold: ocrFrameDiff,
             ScrollResetDiffThreshold: 0.15f,
+            ScrollCooldownFrames: 2,
             ScrollResetOcrShiftRatio: 0.35f,
             HighlightTtlFrames: 3,
             HighlightEmptyResetFrames: 2,

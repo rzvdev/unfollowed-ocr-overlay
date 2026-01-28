@@ -10,6 +10,7 @@ public sealed record ScanSessionOptions(
     int TargetFps,
     float OcrFrameDiffThreshold,
     float ScrollResetDiffThreshold,
+    int ScrollCooldownFrames,
     float ScrollResetOcrShiftRatio,
     int HighlightTtlFrames,
     int HighlightEmptyResetFrames,

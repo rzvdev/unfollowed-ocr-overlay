@@ -101,6 +101,7 @@ public sealed class ScanSessionControllerTests
             TargetFps: 4,
             OcrFrameDiffThreshold: 0.0f,
             ScrollResetDiffThreshold: 0.15f,
+            ScrollCooldownFrames: 2,
             ScrollResetOcrShiftRatio: 0.35f,
             HighlightTtlFrames: 3,
             HighlightEmptyResetFrames: 2,
