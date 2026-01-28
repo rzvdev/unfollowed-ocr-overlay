@@ -523,6 +523,8 @@ public sealed class ScanningTabViewModel : ViewModelBase
         return new ScanSessionOptions(
             TargetFps: fps,
             OcrFrameDiffThreshold: ocrFrameDiff,
+            ScrollResetDiffThreshold: 0.15f,
+            ScrollResetOcrShiftRatio: 0.35f,
             Preprocess: new PreprocessOptions(Profile: ResolveProfile()),
             Ocr: new OcrOptions(MinTokenConfidence: confidence),
             Extraction: new ExtractionOptions(MinTokenConfidence: confidence),

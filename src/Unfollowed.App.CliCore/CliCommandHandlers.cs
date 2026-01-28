@@ -215,6 +215,8 @@ public static class CliCommandHandlers
         var options = new ScanSessionOptions(
             TargetFps: 1,
             OcrFrameDiffThreshold: 0.0f,
+            ScrollResetDiffThreshold: 0.15f,
+            ScrollResetOcrShiftRatio: 0.35f,
             Preprocess: new PreprocessOptions(),
             Ocr: new OcrOptions(),
             Extraction: new ExtractionOptions(),
@@ -892,6 +894,8 @@ public static class CliCommandHandlers
         return new ScanSessionOptions(
             TargetFps: settings.TargetFps,
             OcrFrameDiffThreshold: settings.OcrFrameDiffThreshold,
+            ScrollResetDiffThreshold: configuration.GetValue("Scan:ScrollResetDiffThreshold", 0.15f),
+            ScrollResetOcrShiftRatio: configuration.GetValue("Scan:ScrollResetOcrShiftRatio", 0.35f),
             Preprocess: preprocessOptions,
             Ocr: ocrOptions,
             Extraction: new ExtractionOptions(),
