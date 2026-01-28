@@ -177,7 +177,7 @@ public sealed class ScanSessionController : IScanSessionController
                         scrollCooldownRemaining = Math.Max(scrollCooldownRemaining, options.ScrollCooldownFrames);
                     }
                     _logger.LogInformation(
-                        "Scroll cooldown triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
+                        "Scroll reset triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
                         diffRatio,
                         options.ScrollResetDiffThreshold,
                         options.ScrollCooldownFrames);
