@@ -900,7 +900,7 @@ public static class CliCommandHandlers
             ScrollResetDiffThreshold: configuration.GetValue("Scan:ScrollResetDiffThreshold", 0.15f),
             ScrollCooldownFrames: configuration.GetValue("Scan:ScrollCooldownFrames", 2),
             ScrollResetOcrShiftRatio: configuration.GetValue("Scan:ScrollResetOcrShiftRatio", 0.35f),
-            HighlightTtlFrames: configuration.GetValue("Scan:HighlightTtlFrames", 3),
+            HighlightTtlFrames: configuration.GetValue("Stabilizer:HighlightTtlFrames", 3),
             HighlightEmptyResetFrames: configuration.GetValue("Scan:HighlightEmptyResetFrames", 2),
             Preprocess: preprocessOptions,
             Ocr: ocrOptions,
