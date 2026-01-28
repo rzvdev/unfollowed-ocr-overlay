@@ -140,7 +140,7 @@ public sealed class ScanSessionController : IScanSessionController
         var skippedCount = 0L;
         ProcessedFrame? previousProcessed = null;
         IReadOnlyList<Highlight> lastHighlights = Array.Empty<Highlight>();
-        var lastSeenFrames = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var lastSeenFrames = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var emptyHighlightStreak = 0;
         float? previousCandidateMeanY = null;
         var scrollCooldownRemaining = 0;
@@ -216,10 +216,14 @@ public sealed class ScanSessionController : IScanSessionController
                         username => nonFollowBackSet.Contains(username),
                         raw => _normalizer.Normalize(raw));
                     var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
-                    var ocrFrameNumber = ocrFrameIndex++;
+                    var ocrFrameNumber = checked((int)ocrFrameIndex++);
                     var candidateMeanY = candidates.Count == 0
                         ? (float?)null
                         : candidates.Average(candidate => candidate.RoiRect.Y + candidate.RoiRect.H * 0.5f);
+                    foreach (var candidate in candidates)
+                    {
+                        lastSeenFrames[candidate.UsernameNormalized] = ocrFrameNumber;
+                    }
                     var scrollDetected = false;
                     if (candidateMeanY.HasValue
                         && previousCandidateMeanY.HasValue
@@ -298,14 +302,6 @@ public sealed class ScanSessionController : IScanSessionController
                             emptyHighlightStreak = 0;
                         }
 
-                        if (hasFreshHighlights)
-                        {
-                            foreach (var highlight in lastHighlights)
-                            {
-                                lastSeenFrames[highlight.UsernameNormalized] = ocrFrameNumber;
-                            }
-                        }
-
                         if (options.HighlightTtlFrames > 0 && lastSeenFrames.Count > 0)
                         {
                             var expired = lastSeenFrames
@@ -318,12 +314,21 @@ public sealed class ScanSessionController : IScanSessionController
                                 {
                                     lastSeenFrames.Remove(username);
                                 }
+                            }
 
-                                if (lastHighlights.Count > 0)
+                            if (lastHighlights.Count > 0)
+                            {
+                                var filtered = lastHighlights
+                                    .Where(highlight => lastSeenFrames.ContainsKey(highlight.UsernameNormalized))
+                                    .ToArray();
+                                if (filtered.Length != lastHighlights.Count)
                                 {
-                                    lastHighlights = lastHighlights
-                                        .Where(highlight => lastSeenFrames.ContainsKey(highlight.UsernameNormalized))
-                                        .ToArray();
+                                    lastHighlights = filtered;
+                                    if (lastHighlights.Count == 0)
+                                    {
+                                        _stabilizer.Reset();
+                                        emptyHighlightStreak = 0;
+                                    }
                                 }
                             }
                         }
