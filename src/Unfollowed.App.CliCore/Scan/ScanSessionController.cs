@@ -135,10 +135,13 @@ public sealed class ScanSessionController : IScanSessionController
         var targetFps = Math.Max(1, options.TargetFps);
         var frameDuration = TimeSpan.FromSeconds(1.0 / targetFps);
         var frameIndex = 0L;
+        var ocrFrameIndex = 0L;
         var processedCount = 0L;
         var skippedCount = 0L;
         ProcessedFrame? previousProcessed = null;
         IReadOnlyList<Highlight> lastHighlights = Array.Empty<Highlight>();
+        var lastSeenFrames = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var emptyHighlightStreak = 0;
         float? previousCandidateMeanY = null;
 
         while (!ct.IsCancellationRequested)
@@ -165,6 +168,8 @@ public sealed class ScanSessionController : IScanSessionController
                 {
                     _stabilizer.Reset();
                     lastHighlights = Array.Empty<Highlight>();
+                    lastSeenFrames.Clear();
+                    emptyHighlightStreak = 0;
                     previousCandidateMeanY = null;
                     await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
                     _logger.LogInformation(
@@ -206,6 +211,7 @@ public sealed class ScanSessionController : IScanSessionController
                         username => nonFollowBackSet.Contains(username),
                         raw => _normalizer.Normalize(raw));
                     var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
+                    var ocrFrameNumber = ocrFrameIndex++;
                     var candidateMeanY = candidates.Count == 0
                         ? (float?)null
                         : candidates.Average(candidate => candidate.RoiRect.Y + candidate.RoiRect.H * 0.5f);
@@ -220,6 +226,8 @@ public sealed class ScanSessionController : IScanSessionController
                         {
                             _stabilizer.Reset();
                             lastHighlights = Array.Empty<Highlight>();
+                            lastSeenFrames.Clear();
+                            emptyHighlightStreak = 0;
                             previousCandidateMeanY = null;
                             await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
                             _logger.LogInformation(
@@ -240,16 +248,69 @@ public sealed class ScanSessionController : IScanSessionController
                         processed.Width,
                         processed.Height);
 
+                    var hasFreshHighlights = false;
                     if (candidates.Count == 0)
                     {
                         _stabilizer.Reset();
-                        lastHighlights = Array.Empty<Highlight>();
+                        emptyHighlightStreak = 0;
                         previousCandidateMeanY = null;
                     }
                     else
                     {
-                        lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                        var stabilized = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                        if (stabilized.Count > 0)
+                        {
+                            lastHighlights = stabilized;
+                            hasFreshHighlights = true;
+                        }
                         previousCandidateMeanY = candidateMeanY;
+                    }
+
+                    if (candidates.Count > 0 && !hasFreshHighlights)
+                    {
+                        emptyHighlightStreak++;
+                    }
+                    else
+                    {
+                        emptyHighlightStreak = 0;
+                    }
+
+                    if (options.HighlightEmptyResetFrames > 0
+                        && emptyHighlightStreak >= options.HighlightEmptyResetFrames)
+                    {
+                        lastHighlights = Array.Empty<Highlight>();
+                        lastSeenFrames.Clear();
+                        emptyHighlightStreak = 0;
+                    }
+
+                    if (hasFreshHighlights)
+                    {
+                        foreach (var highlight in lastHighlights)
+                        {
+                            lastSeenFrames[highlight.UsernameNormalized] = ocrFrameNumber;
+                        }
+                    }
+
+                    if (options.HighlightTtlFrames > 0 && lastSeenFrames.Count > 0)
+                    {
+                        var expired = lastSeenFrames
+                            .Where(pair => ocrFrameNumber - pair.Value > options.HighlightTtlFrames)
+                            .Select(pair => pair.Key)
+                            .ToArray();
+                        if (expired.Length > 0)
+                        {
+                            foreach (var username in expired)
+                            {
+                                lastSeenFrames.Remove(username);
+                            }
+
+                            if (lastHighlights.Count > 0)
+                            {
+                                lastHighlights = lastHighlights
+                                    .Where(highlight => lastSeenFrames.ContainsKey(highlight.UsernameNormalized))
+                                    .ToArray();
+                            }
+                        }
                     }
 
                     var renderStart = Stopwatch.GetTimestamp();
