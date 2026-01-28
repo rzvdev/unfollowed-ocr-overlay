@@ -143,6 +143,7 @@ public sealed class ScanSessionController : IScanSessionController
         var lastSeenFrames = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         var emptyHighlightStreak = 0;
         float? previousCandidateMeanY = null;
+        var scrollCooldownRemaining = 0;
 
         while (!ct.IsCancellationRequested)
         {
@@ -171,11 +172,15 @@ public sealed class ScanSessionController : IScanSessionController
                     lastSeenFrames.Clear();
                     emptyHighlightStreak = 0;
                     previousCandidateMeanY = null;
-                    await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
+                    if (options.ScrollCooldownFrames > 0)
+                    {
+                        scrollCooldownRemaining = Math.Max(scrollCooldownRemaining, options.ScrollCooldownFrames);
+                    }
                     _logger.LogInformation(
-                        "Scroll reset triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}).",
+                        "Scroll cooldown triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
                         diffRatio,
-                        options.ScrollResetDiffThreshold);
+                        options.ScrollResetDiffThreshold,
+                        options.ScrollCooldownFrames);
                     previousProcessed = processed;
                     continue;
                 }
@@ -215,6 +220,7 @@ public sealed class ScanSessionController : IScanSessionController
                     var candidateMeanY = candidates.Count == 0
                         ? (float?)null
                         : candidates.Average(candidate => candidate.RoiRect.Y + candidate.RoiRect.H * 0.5f);
+                    var scrollDetected = false;
                     if (candidateMeanY.HasValue
                         && previousCandidateMeanY.HasValue
                         && options.ScrollResetOcrShiftRatio > 0f
@@ -229,14 +235,17 @@ public sealed class ScanSessionController : IScanSessionController
                             lastSeenFrames.Clear();
                             emptyHighlightStreak = 0;
                             previousCandidateMeanY = null;
-                            await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
+                            if (options.ScrollCooldownFrames > 0)
+                            {
+                                scrollCooldownRemaining = Math.Max(scrollCooldownRemaining, options.ScrollCooldownFrames);
+                            }
+                            scrollDetected = true;
                             _logger.LogInformation(
-                                "Scroll reset triggered by OCR Y-shift (delta={Delta:0.0}px, ratio={Ratio:0.000}, threshold={Threshold:0.000}).",
+                                "Scroll cooldown triggered by OCR Y-shift (delta={Delta:0.0}px, ratio={Ratio:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
                                 delta,
                                 deltaRatio,
-                                options.ScrollResetOcrShiftRatio);
-                            previousProcessed = processed;
-                            continue;
+                                options.ScrollResetOcrShiftRatio,
+                                options.ScrollCooldownFrames);
                         }
                     }
 
@@ -249,7 +258,11 @@ public sealed class ScanSessionController : IScanSessionController
                         processed.Height);
 
                     var hasFreshHighlights = false;
-                    if (candidates.Count == 0)
+                    if (scrollDetected)
+                    {
+                        hasFreshHighlights = false;
+                    }
+                    else if (candidates.Count == 0)
                     {
                         _stabilizer.Reset();
                         emptyHighlightStreak = 0;
@@ -266,56 +279,72 @@ public sealed class ScanSessionController : IScanSessionController
                         previousCandidateMeanY = candidateMeanY;
                     }
 
-                    if (candidates.Count > 0 && !hasFreshHighlights)
+                    if (!scrollDetected)
                     {
-                        emptyHighlightStreak++;
+                        if (candidates.Count > 0 && !hasFreshHighlights)
+                        {
+                            emptyHighlightStreak++;
+                        }
+                        else
+                        {
+                            emptyHighlightStreak = 0;
+                        }
+
+                        if (options.HighlightEmptyResetFrames > 0
+                            && emptyHighlightStreak >= options.HighlightEmptyResetFrames)
+                        {
+                            lastHighlights = Array.Empty<Highlight>();
+                            lastSeenFrames.Clear();
+                            emptyHighlightStreak = 0;
+                        }
+
+                        if (hasFreshHighlights)
+                        {
+                            foreach (var highlight in lastHighlights)
+                            {
+                                lastSeenFrames[highlight.UsernameNormalized] = ocrFrameNumber;
+                            }
+                        }
+
+                        if (options.HighlightTtlFrames > 0 && lastSeenFrames.Count > 0)
+                        {
+                            var expired = lastSeenFrames
+                                .Where(pair => ocrFrameNumber - pair.Value > options.HighlightTtlFrames)
+                                .Select(pair => pair.Key)
+                                .ToArray();
+                            if (expired.Length > 0)
+                            {
+                                foreach (var username in expired)
+                                {
+                                    lastSeenFrames.Remove(username);
+                                }
+
+                                if (lastHighlights.Count > 0)
+                                {
+                                    lastHighlights = lastHighlights
+                                        .Where(highlight => lastSeenFrames.ContainsKey(highlight.UsernameNormalized))
+                                        .ToArray();
+                                }
+                            }
+                        }
+                    }
+
+                    if (scrollCooldownRemaining > 0)
+                    {
+                        scrollCooldownRemaining--;
+                    }
+
+                    TimeSpan renderElapsed;
+                    if (scrollCooldownRemaining > 0)
+                    {
+                        renderElapsed = TimeSpan.Zero;
                     }
                     else
                     {
-                        emptyHighlightStreak = 0;
+                        var renderStart = Stopwatch.GetTimestamp();
+                        await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
+                        renderElapsed = Stopwatch.GetElapsedTime(renderStart);
                     }
-
-                    if (options.HighlightEmptyResetFrames > 0
-                        && emptyHighlightStreak >= options.HighlightEmptyResetFrames)
-                    {
-                        lastHighlights = Array.Empty<Highlight>();
-                        lastSeenFrames.Clear();
-                        emptyHighlightStreak = 0;
-                    }
-
-                    if (hasFreshHighlights)
-                    {
-                        foreach (var highlight in lastHighlights)
-                        {
-                            lastSeenFrames[highlight.UsernameNormalized] = ocrFrameNumber;
-                        }
-                    }
-
-                    if (options.HighlightTtlFrames > 0 && lastSeenFrames.Count > 0)
-                    {
-                        var expired = lastSeenFrames
-                            .Where(pair => ocrFrameNumber - pair.Value > options.HighlightTtlFrames)
-                            .Select(pair => pair.Key)
-                            .ToArray();
-                        if (expired.Length > 0)
-                        {
-                            foreach (var username in expired)
-                            {
-                                lastSeenFrames.Remove(username);
-                            }
-
-                            if (lastHighlights.Count > 0)
-                            {
-                                lastHighlights = lastHighlights
-                                    .Where(highlight => lastSeenFrames.ContainsKey(highlight.UsernameNormalized))
-                                    .ToArray();
-                            }
-                        }
-                    }
-
-                    var renderStart = Stopwatch.GetTimestamp();
-                    await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
-                    var renderElapsed = Stopwatch.GetElapsedTime(renderStart);
 
                     var totalElapsed = Stopwatch.GetElapsedTime(frameStart);
                     if (_logger.IsEnabled(LogLevel.Information))
