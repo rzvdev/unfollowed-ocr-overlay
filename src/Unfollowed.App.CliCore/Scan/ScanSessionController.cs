@@ -139,6 +139,7 @@ public sealed class ScanSessionController : IScanSessionController
         var skippedCount = 0L;
         ProcessedFrame? previousProcessed = null;
         IReadOnlyList<Highlight> lastHighlights = Array.Empty<Highlight>();
+        float? previousCandidateMeanY = null;
 
         while (!ct.IsCancellationRequested)
         {
@@ -160,6 +161,19 @@ public sealed class ScanSessionController : IScanSessionController
                 var diffRatio = previousProcessed is null
                     ? 1f
                     : CalculateFrameDifference(processed, previousProcessed);
+                if (options.ScrollResetDiffThreshold > 0f && diffRatio >= options.ScrollResetDiffThreshold)
+                {
+                    _stabilizer.Reset();
+                    lastHighlights = Array.Empty<Highlight>();
+                    previousCandidateMeanY = null;
+                    await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
+                    _logger.LogInformation(
+                        "Scroll reset triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}).",
+                        diffRatio,
+                        options.ScrollResetDiffThreshold);
+                    previousProcessed = processed;
+                    continue;
+                }
                 var shouldRunOcr = options.OcrFrameDiffThreshold <= 0f
                     || previousProcessed is null
                     || diffRatio >= options.OcrFrameDiffThreshold;
@@ -192,6 +206,31 @@ public sealed class ScanSessionController : IScanSessionController
                         username => nonFollowBackSet.Contains(username),
                         raw => _normalizer.Normalize(raw));
                     var extractElapsed = Stopwatch.GetElapsedTime(extractStart);
+                    var candidateMeanY = candidates.Count == 0
+                        ? (float?)null
+                        : candidates.Average(candidate => candidate.RoiRect.Y + candidate.RoiRect.H * 0.5f);
+                    if (candidateMeanY.HasValue
+                        && previousCandidateMeanY.HasValue
+                        && options.ScrollResetOcrShiftRatio > 0f
+                        && processed.Height > 0)
+                    {
+                        var delta = MathF.Abs(candidateMeanY.Value - previousCandidateMeanY.Value);
+                        var deltaRatio = delta / processed.Height;
+                        if (deltaRatio >= options.ScrollResetOcrShiftRatio)
+                        {
+                            _stabilizer.Reset();
+                            lastHighlights = Array.Empty<Highlight>();
+                            previousCandidateMeanY = null;
+                            await _overlay.UpdateHighlightsAsync(lastHighlights, ct);
+                            _logger.LogInformation(
+                                "Scroll reset triggered by OCR Y-shift (delta={Delta:0.0}px, ratio={Ratio:0.000}, threshold={Threshold:0.000}).",
+                                delta,
+                                deltaRatio,
+                                options.ScrollResetOcrShiftRatio);
+                            previousProcessed = processed;
+                            continue;
+                        }
+                    }
 
                     var transform = new RoiToScreenTransform(
                         roi.X,
@@ -205,10 +244,12 @@ public sealed class ScanSessionController : IScanSessionController
                     {
                         _stabilizer.Reset();
                         lastHighlights = Array.Empty<Highlight>();
+                        previousCandidateMeanY = null;
                     }
                     else
                     {
                         lastHighlights = _stabilizer.Stabilize(candidates, transform, options.Stabilizer);
+                        previousCandidateMeanY = candidateMeanY;
                     }
 
                     var renderStart = Stopwatch.GetTimestamp();
