@@ -11,6 +11,8 @@ public sealed record ScanSessionOptions(
     float OcrFrameDiffThreshold,
     float ScrollResetDiffThreshold,
     float ScrollResetOcrShiftRatio,
+    int HighlightTtlFrames,
+    int HighlightEmptyResetFrames,
     PreprocessOptions Preprocess,
     OcrOptions Ocr,
     ExtractionOptions Extraction,

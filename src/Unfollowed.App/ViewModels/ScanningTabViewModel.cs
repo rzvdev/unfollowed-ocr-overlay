@@ -525,6 +525,8 @@ public sealed class ScanningTabViewModel : ViewModelBase
             OcrFrameDiffThreshold: ocrFrameDiff,
             ScrollResetDiffThreshold: 0.15f,
             ScrollResetOcrShiftRatio: 0.35f,
+            HighlightTtlFrames: 3,
+            HighlightEmptyResetFrames: 2,
             Preprocess: new PreprocessOptions(Profile: ResolveProfile()),
             Ocr: new OcrOptions(MinTokenConfidence: confidence),
             Extraction: new ExtractionOptions(MinTokenConfidence: confidence),
