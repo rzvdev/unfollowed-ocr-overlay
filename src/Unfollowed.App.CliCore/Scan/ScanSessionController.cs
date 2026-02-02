@@ -176,6 +176,7 @@ public sealed class ScanSessionController : IScanSessionController
                     {
                         scrollCooldownRemaining = Math.Max(scrollCooldownRemaining, options.ScrollCooldownFrames);
                     }
+                    await _overlay.UpdateHighlightsAsync(Array.Empty<Highlight>(), ct);
                     _logger.LogInformation(
                         "Scroll reset triggered by frame diff spike (diff={Diff:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
                         diffRatio,
@@ -225,6 +226,7 @@ public sealed class ScanSessionController : IScanSessionController
                         lastSeenFrames[candidate.UsernameNormalized] = ocrFrameNumber;
                     }
                     var scrollDetected = false;
+                    var clearOverlayForScroll = false;
                     if (candidateMeanY.HasValue
                         && previousCandidateMeanY.HasValue
                         && options.ScrollResetOcrShiftRatio > 0f
@@ -244,6 +246,7 @@ public sealed class ScanSessionController : IScanSessionController
                                 scrollCooldownRemaining = Math.Max(scrollCooldownRemaining, options.ScrollCooldownFrames);
                             }
                             scrollDetected = true;
+                            clearOverlayForScroll = true;
                             _logger.LogInformation(
                                 "Scroll cooldown triggered by OCR Y-shift (delta={Delta:0.0}px, ratio={Ratio:0.000}, threshold={Threshold:0.000}, cooldown={Cooldown} frames).",
                                 delta,
@@ -340,7 +343,13 @@ public sealed class ScanSessionController : IScanSessionController
                     }
 
                     TimeSpan renderElapsed;
-                    if (scrollCooldownRemaining > 0)
+                    if (clearOverlayForScroll)
+                    {
+                        var renderStart = Stopwatch.GetTimestamp();
+                        await _overlay.UpdateHighlightsAsync(Array.Empty<Highlight>(), ct);
+                        renderElapsed = Stopwatch.GetElapsedTime(renderStart);
+                    }
+                    else if (scrollCooldownRemaining > 0)
                     {
                         renderElapsed = TimeSpan.Zero;
                     }
